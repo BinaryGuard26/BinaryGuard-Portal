@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import './styles/portal.css';
+import "./styles/portal.css";
 
 type Layer = 'user' | 'service' | 'order';
 type Screen = 'welcome' | 'register' | 'login' | 'verify' | 'recover' | 'service' | 'order' | 'success';
