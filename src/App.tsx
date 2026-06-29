@@ -111,7 +111,7 @@ export default function App() {
         <div className="secure-chip"><span></span>portal.binaryguard.ca</div>
 
         <nav className="journey">
-          <button className={`journey-step ${layer === 'user' ? 'active' : layer !== 'user' ? 'done' : ''}`} onClick={() => go('welcome')}>
+          <button className={`journey-step ${layer === 'user' ? 'active' : 'done'}`} onClick={() => go('welcome')}>
             <i>01</i><div><b>User Authentication</b><small>Register, Login, Verify, Recover</small></div>
           </button>
           <button className={`journey-step ${layer === 'service' ? 'active' : layer === 'order' ? 'done' : 'locked'}`} onClick={() => go('service')}>
