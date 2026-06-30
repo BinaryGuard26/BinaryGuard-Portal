@@ -1,268 +1,281 @@
-import { useState } from 'react';
+import { FormEvent, useMemo, useState } from "react";
 import "./styles/portal.css";
 
-type Layer = 'user' | 'service' | 'order';
-type Screen = 'welcome' | 'register' | 'login' | 'verify' | 'recover' | 'service' | 'order' | 'success';
+type Page = "auth" | "register" | "otp" | "services" | "checking" | "denied" | "order" | "success";
 
-const approvedDomains = ['gov.mb.ca', 'clientabc.com', 'cityofx.ca'];
-const otp = '248106';
-const statuses = ['Submitted','Under Review','More Information Required','Approved','In Progress','Completed','Cancelled','Rejected'];
+type Order = {
+  id: string;
+  reference: string;
+  request_type: string;
+  cardholder_name: string;
+  cardholder_email: string;
+  employee_id: string;
+  department: string;
+  site_name: string;
+  building_address: string;
+  floor: string;
+  access_level: string;
+  effective_date: string;
+  expiry_date: string;
+  notes: string;
+  status: string;
+};
+
+const tenant = {
+  name: "Government of Manitoba",
+  approvedEmailDomain: "@gov.mb.ca",
+  active: true,
+  services: { access_card_ordering: true }
+};
+
+const otp = "248106";
+const dropdownOptions = {
+  request_type: ["New Card", "Replacement Card", "Temporary Card", "Cancel Card", "Access Change"],
+  access_level: ["Standard Access", "Manager Access", "Restricted Area Access"],
+  site: ["Winnipeg Central Office", "Brandon Regional Office", "Thompson Service Centre"],
+  building: ["Government Administration Building", "Norquay Building", "Woodsworth Building"]
+};
+
+const pageTitles: Record<Page, [string, string]> = {
+  auth: ["SECURE ACCESS", "Welcome to BinaryGuard"],
+  register: ["USER REGISTRATION", "Register company user"],
+  otp: ["IDENTITY VERIFICATION", "Enter your security code"],
+  services: ["CLIENT PORTAL", "Authorized services"],
+  checking: ["SERVICE AUTHORIZATION", "Checking access"],
+  denied: ["SERVICE AUTHORIZATION", "Access denied"],
+  order: ["SECURE ORDERING", "Access Card Ordering"],
+  success: ["REQUEST CONFIRMATION", "Order submitted"]
+};
+
+const blankOrder = {
+  request_type: "",
+  cardholder_name: "",
+  cardholder_email: "",
+  employee_id: "",
+  department: "",
+  site_name: "",
+  building_address: "",
+  floor: "",
+  access_level: "",
+  effective_date: "",
+  expiry_date: "",
+  notes: ""
+};
+
+function initials(name: string) {
+  return name.split(" ").filter(Boolean).slice(0, 2).map(part => part[0]?.toUpperCase()).join("") || "BG";
+}
+
+function reference() {
+  return `ACO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900000 + 100000))}`;
+}
 
 export default function App() {
-  const [layer, setLayer] = useState<Layer>('user');
-  const [screen, setScreen] = useState<Screen>('welcome');
-  const [email, setEmail] = useState('john.smith@gov.mb.ca');
-  const [org, setOrg] = useState('Government of Manitoba');
-  const [code, setCode] = useState('248106');
-  const [logs, setLogs] = useState<string[]>(['Portal loaded. Layer 2 and Layer 3 are inactive until User Authentication is completed.']);
-  const [verified, setVerified] = useState(false);
-
-  const [order, setOrder] = useState({
-    requester_email:'john.smith@gov.mb.ca',
-    cardholder_name:'',
-    cardholder_email:'',
-    site_name:'Main Office',
-    building_address:'',
-    request_type:'New Card',
-    access_level:'Standard Access',
-    effective_date:'',
-    notes:''
+  const [page, setPage] = useState<Page>("auth");
+  const [statusText, setStatusText] = useState("Not verified");
+  const [statusOk, setStatusOk] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+  const [otpCode, setOtpCode] = useState(otp);
+  const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [user, setUser] = useState({ name: "John Smith", email: "john.smith@gov.mb.ca", org: tenant.name });
+  const [registration, setRegistration] = useState({
+    operatorName: "John Smith",
+    operatorEmail: "john.smith@gov.mb.ca",
+    newUserName: "",
+    newUserEmail: "",
+    department: "",
+    requestedRole: "tenant_user",
+    reason: ""
   });
+  const [orderForm, setOrderForm] = useState(blankOrder);
 
-  function addLog(message: string) {
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    setLogs(current => [`${time} - ${message}`, ...current]);
+  const title = pageTitles[page];
+  const steps = ["auth", "otp", "services", "order"];
+  const activeStep = page === "checking" || page === "denied" ? "services" : page === "success" ? "order" : page;
+  const activeStepIndex = Math.max(0, steps.indexOf(activeStep));
+  const summary = useMemo(() => ({
+    total: orders.length,
+    active: orders.filter(order => !["Completed", "Cancelled", "Rejected"].includes(order.status)).length,
+    completed: orders.filter(order => order.status === "Completed").length
+  }), [orders]);
+
+  function toast(message: string) {
+    setToastMessage(message);
+    window.setTimeout(() => setToastMessage(""), 3200);
   }
 
-  function allowed(layerName: Layer) {
-    return layer === layerName;
+  function showPage(next: Page) {
+    setPage(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function go(next: Screen) {
-    const nextLayer: Layer = ['welcome','register','login','verify','recover'].includes(next) ? 'user' : next === 'service' ? 'service' : 'order';
-    if (!allowed(nextLayer)) {
-      if (nextLayer === 'user') alert('User Authentication is inactive. Logout to start again.');
-      if (nextLayer === 'service') alert('Service Authorization is inactive until OTP Verification is completed.');
-      if (nextLayer === 'order') alert('Access Card Order Portal is inactive until Service Authorization is completed.');
+  function signOut() {
+    setStatusText("Not verified");
+    setStatusOk(false);
+    setOtpCode(otp);
+    showPage("auth");
+  }
+
+  function login(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!user.email.toLowerCase().endsWith(tenant.approvedEmailDomain)) {
+      toast("This email domain is not approved for portal access.");
       return;
     }
-    setScreen(next);
+    setStatusText("OTP required");
+    setStatusOk(false);
+    showPage("otp");
   }
 
-  function validateEmailAndSendOtp() {
-    const domain = email.split('@')[1]?.toLowerCase();
-    if (!domain || !approvedDomains.includes(domain)) {
-      addLog(`Access denied for unauthorized domain: ${email}`);
-      alert('Your organization is not authorized to access this portal. Please contact BinaryGuard.');
+  function register(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!registration.newUserEmail.toLowerCase().endsWith(tenant.approvedEmailDomain)) {
+      toast("Registration is limited to approved organization email addresses.");
       return;
     }
-    addLog(`Corporate domain approved: ${domain}. OTP generated and sent.`);
-    setScreen('verify');
+    toast("Registration request submitted for admin approval.");
+    showPage("auth");
   }
 
-  function verifyOtp() {
-    if (code !== otp) {
-      addLog('OTP verification failed.');
-      alert('Invalid OTP code.');
+  function verify(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (otpCode !== otp) {
+      toast("Invalid OTP code.");
       return;
     }
-    setVerified(true);
-    setLayer('service');
-    setScreen('service');
-    addLog('OTP verified. Layer 1 inactive. Layer 2 Service Authorization active.');
+    setStatusText("Verified");
+    setStatusOk(true);
+    showPage("services");
   }
 
-  function openOrderPortal() {
-    setLayer('order');
-    setScreen('order');
-    setOrder({ ...order, requester_email: email });
-    addLog('Service authorized. Layer 2 inactive. Layer 3 Access Card Order Portal active.');
+  function openService() {
+    showPage("checking");
+    window.setTimeout(() => {
+      if (statusOk && tenant.active && tenant.services.access_card_ordering) showPage("order");
+      else showPage("denied");
+    }, 800);
   }
 
-  function submitOrder() {
-    const ref = `ACO-${new Date().getFullYear()}-${Math.floor(Math.random()*900000+100000)}`;
-    addLog(`Access card order ${ref} submitted. Status: Submitted. Saved with tenant_id and user_id.`);
-    addLog('Confirmation email queued for user. Staff notification queued. Audit log created.');
-    setScreen('success');
+  function resetOrder() {
+    setEditingOrderId(null);
+    setOrderForm(blankOrder);
   }
 
-  function logout() {
-    setLayer('user');
-    setScreen('welcome');
-    setVerified(false);
-    setCode('248106');
-    addLog('Logout completed. Layer 1 active. Layer 2 and Layer 3 inactive.');
+  function submitOrder(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (editingOrderId) {
+      setOrders(current => current.map(order => order.id === editingOrderId ? { ...order, ...orderForm } : order));
+      resetOrder();
+      toast("Request updated.");
+      showPage("services");
+      return;
+    }
+    const newOrder: Order = { id: crypto.randomUUID(), reference: reference(), ...orderForm, status: "Submitted" };
+    setOrders(current => [newOrder, ...current]);
+    resetOrder();
+    showPage("success");
   }
 
-  const header = screen === 'service'
-    ? ['Layer 2 · Service Authorization','Service Authorization']
-    : screen === 'order' || screen === 'success'
-      ? ['Layer 3 · Access Card Order Portal','Access Card Order Portal']
-      : ['Layer 1 · User Authentication','User Authentication'];
+  function editOrder(orderId: string) {
+    const found = orders.find(order => order.id === orderId);
+    if (!found) return;
+    setEditingOrderId(orderId);
+    setOrderForm({
+      request_type: found.request_type,
+      cardholder_name: found.cardholder_name,
+      cardholder_email: found.cardholder_email,
+      employee_id: found.employee_id,
+      department: found.department,
+      site_name: found.site_name,
+      building_address: found.building_address,
+      floor: found.floor,
+      access_level: found.access_level,
+      effective_date: found.effective_date,
+      expiry_date: found.expiry_date,
+      notes: found.notes
+    });
+    showPage("order");
+  }
 
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <div className="brand">
-          <span className="brand-mark">BG</span>
-          <div><strong>BinaryGuard</strong><small>Secure Client Gateway</small></div>
-        </div>
-
-        <div className="secure-chip"><span></span>portal.binaryguard.ca</div>
-
-        <nav className="journey">
-          <button className={`journey-step ${layer === 'user' ? 'active' : 'done'}`} onClick={() => go('welcome')}>
-            <i>01</i><div><b>User Authentication</b><small>Register, Login, Verify, Recover</small></div>
-          </button>
-          <button className={`journey-step ${layer === 'service' ? 'active' : layer === 'order' ? 'done' : 'locked'}`} onClick={() => go('service')}>
-            <i>02</i><div><b>Service Authorization</b><small>Locked until OTP verification</small></div>
-          </button>
-          <button className={`journey-step ${layer === 'order' ? 'active' : 'locked'}`} onClick={() => go('order')}>
-            <i>03</i><div><b>Access Card Order Portal</b><small>Locked until service authorization</small></div>
-          </button>
+        <div className="brand"><span className="brand-mark">BG</span><div><strong>BinaryGuard</strong><small>Secure Client Portal</small></div></div>
+        <div className="secure-chip"><span></span> portal.binaryguard.ca</div>
+        <nav className="journey" aria-label="Portal progress">
+          {[["auth","User Authentication","Login or registration request"],["otp","OTP Verification","One-time passcode"],["services","Service Authorization","Tenant & role access"],["order","Access Card Portal","Secure ordering"]].map(([key,label,helper], index) => (
+            <button key={key} className={`journey-step ${index === activeStepIndex ? "active" : index < activeStepIndex ? "done" : "locked"}`} onClick={() => index <= activeStepIndex && showPage(key as Page)}>
+              <i>{index < activeStepIndex ? "✓" : index + 1}</i><span><b>{label}</b><small>{helper}</small></span>
+            </button>
+          ))}
         </nav>
-
-        <div className="security-card">
-          <span className="shield">✓</span>
-          <div><strong>Separate admin surface</strong><p>Staff/Admin functions remain isolated at admin.binaryguard.ca.</p></div>
-        </div>
+        <div className="security-card"><span className="shield">✓</span><div><strong>Protected workflow</strong><p>Each layer is verified before the next becomes available.</p></div></div>
       </aside>
 
       <main>
         <header className="topbar">
-          <div><p className="eyebrow">{header[0]}</p><h1>{header[1]}</h1></div>
-          <span className={`status ${verified ? 'ok' : ''}`}><i></i>{verified ? 'Verified' : 'Not Verified'}</span>
-          <div className="session">
-            <span className="avatar">BG</span>
-            <div><b>{email}</b><small>{org}</small></div>
-            <button className="text-btn" onClick={logout}>Logout</button>
-          </div>
+          <div><p className="eyebrow">{title[0]}</p><h1>{title[1]}</h1></div>
+          {page !== "auth" && <div className="session"><span className="avatar">{initials(user.name)}</span><div><b>{user.name}</b><small>{user.org}</small></div><button className="text-btn" onClick={signOut}>Sign out</button></div>}
+          <span className={`status ${statusOk ? "ok" : ""}`}><i></i> {statusText}</span>
         </header>
 
-        <section className={`page ${screen === 'welcome' ? 'active' : ''}`}>
-          <div className="hero">
-            <div className="hero-icon">🔐</div>
-            <div><p className="eyebrow">Welcome</p><h2>BinaryGuard Secure Client Gateway</h2><p>Secure access to authorized client services through user authentication, OTP verification, service authorization, and access card ordering.</p></div>
-          </div>
-          <section className="card compact">
-            <p className="eyebrow">Start here</p>
-            <h2>Choose how you want to continue</h2>
-            <div className="split-actions">
-              <button className="primary" onClick={() => go('register')}>Register</button>
-              <button className="secondary" onClick={() => go('login')}>Login</button>
-              <button className="secondary" onClick={() => go('verify')}>Verify OTP</button>
-              <button className="secondary" onClick={() => go('recover')}>Recover Access</button>
-            </div>
-          </section>
+        <section className={`page ${page === "auth" ? "active" : ""}`}>
+          <div className="hero"><span className="hero-icon">→</span><div><p className="eyebrow">LAYER 1</p><h2>Corporate access login</h2><p>Use your approved organization email to enter the secure client portal.</p></div></div>
+          <form className="card compact" onSubmit={login}>
+            <label>Corporate email address<input type="email" value={user.email} onChange={e => setUser({ ...user, email: e.target.value })} required /></label>
+            <button className="primary" type="submit">Continue securely <span>→</span></button>
+            <p className="form-note">Users cannot continue until an operator submits registration and an admin approves it in CPanel.</p>
+            <div className="split-actions"><button className="text-btn" type="button" onClick={() => showPage("register")}>Register company user</button><a className="text-btn" href="https://admin.binaryguard.ca" target="_blank" rel="noreferrer">Open Admin CPanel</a></div>
+          </form>
         </section>
 
-        <section className={`page ${screen === 'register' ? 'active' : ''}`}>
-          <div className="hero"><div className="hero-icon">ID</div><div><p className="eyebrow">Layer 1</p><h2>Verify Corporate Identity</h2><p>Register using an approved corporate domain.</p></div></div>
-          <section className="card compact">
-            <label>Full Name<input defaultValue="John Smith" /></label>
-            <label>Corporate Email<input value={email} onChange={e => setEmail(e.target.value)} /></label>
-            <label>Organization<input value={org} onChange={e => setOrg(e.target.value)} /></label>
-            <button className="primary" onClick={validateEmailAndSendOtp}>Continue <span>→</span></button>
-          </section>
-        </section>
-
-        <section className={`page ${screen === 'login' ? 'active' : ''}`}>
-          <div className="hero"><div className="hero-icon">↪</div><div><p className="eyebrow">Layer 1</p><h2>Corporate Access Login</h2><p>Continue with your corporate email address.</p></div></div>
-          <section className="card compact">
-            <label>Corporate Email<input value={email} onChange={e => setEmail(e.target.value)} /></label>
-            <button className="primary" onClick={validateEmailAndSendOtp}>Continue <span>→</span></button>
-          </section>
-        </section>
-
-        <section className={`page ${screen === 'recover' ? 'active' : ''}`}>
-          <div className="hero"><div className="hero-icon">?</div><div><p className="eyebrow">Recovery</p><h2>Recover Portal Access</h2><p>Request a recovery code for your corporate email.</p></div></div>
-          <section className="card compact">
-            <label>Corporate Email<input value={email} onChange={e => setEmail(e.target.value)} /></label>
-            <button className="primary" onClick={validateEmailAndSendOtp}>Send Recovery Code</button>
-          </section>
-        </section>
-
-        <section className={`page ${screen === 'verify' ? 'active' : ''}`}>
-          <div className="hero"><div className="hero-icon">OTP</div><div><p className="eyebrow">Layer 1.5</p><h2>Verify One-Time Passcode</h2><p>Enter the six-digit OTP sent to your corporate email.</p></div></div>
-          <section className="card compact">
-            <label>OTP Code<input value={code} onChange={e => setCode(e.target.value)} maxLength={6} /></label>
-            <div className="code-meta"><span>Demo code: 248106</span><span>Expires in 5 minutes</span></div>
-            <button className="primary" onClick={verifyOtp}>Verify OTP</button>
-          </section>
-        </section>
-
-        <section className={`page ${screen === 'service' ? 'active' : ''}`}>
-          <div className="hero"><div className="hero-icon">✓</div><div><p className="eyebrow">Layer 2</p><h2>Authorized Services</h2><p>Only Access Card Ordering Portal is authorized at this stage.</p></div></div>
-          <div className="service-grid">
-            <article className="service-card featured">
-              <div className="service-top"><span className="service-icon">💳</span><span className="approved">Authorized</span></div>
-              <h3>Access Card Ordering Portal</h3>
-              <p>Submit and manage access card requests for approved client sites.</p>
-              <button className="primary" onClick={openOrderPortal}>Open Access Card Ordering</button>
-            </article>
-            {['Camera Ordering Portal','Quote Request Portal','Service Request Portal'].map(service => (
-              <article className="service-card muted" key={service}>
-                <div className="service-top"><span className="service-icon">🔒</span><span className="soon">Coming Soon</span></div>
-                <h3>{service}</h3>
-                <p>This service is currently unavailable for client users.</p>
-              </article>
-            ))}
-          </div>
-        </section>
-
-        <section className={`page ${screen === 'order' ? 'active' : ''}`}>
-          <div className="order-heading">
-            <div><p className="eyebrow">Layer 3</p><h2>Access Card Order Portal</h2><p>Submission will be saved with tenant_id and user_id. Initial status: Submitted.</p></div>
-            <span className="draft">Draft request</span>
-          </div>
-          <section className="form-section">
-            <div className="section-title"><span>01</span><div><h3>Requester and cardholder details</h3><p>Verified email remains read-only.</p></div><span className="readonly-pill">Verified</span></div>
+        <section className={`page ${page === "register" ? "active" : ""}`}>
+          <div className="hero"><span className="hero-icon">+</span><div><p className="eyebrow">USER REGISTRATION</p><h2>Register a company user</h2><p>Organization operators can submit new user requests. Access is granted only after Admin CPanel approval.</p></div></div>
+          <form className="card" onSubmit={register}>
             <div className="form-grid">
-              <label>Requester Email<input value={order.requester_email} readOnly /></label>
-              <label>Cardholder Name<input value={order.cardholder_name} onChange={e => setOrder({...order, cardholder_name: e.target.value})} /></label>
-              <label>Cardholder Email<input value={order.cardholder_email} onChange={e => setOrder({...order, cardholder_email: e.target.value})} /></label>
-              <label>Site<select value={order.site_name} onChange={e => setOrder({...order, site_name: e.target.value})}>{['Main Office','Building A','Building B','Remote Site'].map(x => <option key={x}>{x}</option>)}</select></label>
-              <label>Building Address<input value={order.building_address} onChange={e => setOrder({...order, building_address: e.target.value})} /></label>
-              <label>Request Type<select value={order.request_type} onChange={e => setOrder({...order, request_type: e.target.value})}>{['New Card','Replacement Card','Temporary Card','Cancel Card','Access Change'].map(x => <option key={x}>{x}</option>)}</select></label>
-              <label>Access Level<select value={order.access_level} onChange={e => setOrder({...order, access_level: e.target.value})}>{['Standard Access','Office Access','Restricted Area Access','Manager Approval Required'].map(x => <option key={x}>{x}</option>)}</select></label>
-              <label>Effective Date<input type="date" value={order.effective_date} onChange={e => setOrder({...order, effective_date: e.target.value})} /></label>
+              <label>Operator name *<input value={registration.operatorName} onChange={e => setRegistration({ ...registration, operatorName: e.target.value })} required /></label>
+              <label>Operator email *<input type="email" value={registration.operatorEmail} onChange={e => setRegistration({ ...registration, operatorEmail: e.target.value })} required /></label>
+              <label>Organization *<input value={tenant.name} readOnly /></label>
+              <label>Requested user role *<select value={registration.requestedRole} onChange={e => setRegistration({ ...registration, requestedRole: e.target.value })}><option value="tenant_user">Company User</option><option value="manager">Manager</option></select></label>
+              <label>Company user full name *<input value={registration.newUserName} onChange={e => setRegistration({ ...registration, newUserName: e.target.value })} required /></label>
+              <label>Company user email *<input type="email" value={registration.newUserEmail} onChange={e => setRegistration({ ...registration, newUserEmail: e.target.value })} required /></label>
+              <label>Department *<input value={registration.department} onChange={e => setRegistration({ ...registration, department: e.target.value })} required /></label>
+              <label>Reason for access *<input value={registration.reason} onChange={e => setRegistration({ ...registration, reason: e.target.value })} required /></label>
             </div>
-          </section>
-          <section className="form-section">
-            <div className="section-title"><span>02</span><div><h3>Additional notes</h3><p>Add any remarks for BinaryGuard review.</p></div></div>
-            <label>Notes<textarea value={order.notes} onChange={e => setOrder({...order, notes: e.target.value})} /></label>
-          </section>
-          <div className="form-actions">
-            <p><span>Workflow:</span> {statuses.join(' → ')}</p>
-            <div className="form-action-buttons">
-              <button className="primary" onClick={submitOrder}>Submit Access Card Request</button>
-              <button className="danger" onClick={logout}>Logout</button>
-            </div>
-          </div>
+            <div className="approval-flow"><span>Operator submits request</span><i></i><span>Admin CPanel review</span><i></i><span>Account activated after approval</span></div>
+            <div className="form-actions"><p><span>✓</span> Creates a pending company-user registration request.</p><button className="secondary" type="button" onClick={() => showPage("auth")}>Back to login</button><button className="primary" type="submit">Submit registration request <span>→</span></button></div>
+          </form>
         </section>
 
-        <section className={`page ${screen === 'success' ? 'active' : ''}`}>
-          <section className="success-card">
-            <div className="success-icon">✓</div>
-            <p className="eyebrow">Request submitted</p>
-            <h2>Access card request submitted</h2>
-            <p>Status: <strong>Submitted</strong></p>
-            <div className="success-actions">
-              <button className="primary" onClick={() => setScreen('order')}>Submit Another Request</button>
-              <button className="secondary" onClick={logout}>Logout</button>
-            </div>
-          </section>
+        <section className={`page ${page === "otp" ? "active" : ""}`}>
+          <div className="hero"><span className="hero-icon">••</span><div><p className="eyebrow">LAYER 2</p><h2>Verify your identity</h2><p>We sent a six-digit code to <b>{user.email}</b>. It expires in 5 minutes.</p></div></div>
+          <form className="card compact" onSubmit={verify}><label>Verification code<input value={otpCode} onChange={e => setOtpCode(e.target.value)} inputMode="numeric" maxLength={6} required /></label><div className="code-meta"><span>Demo code: <b>248106</b></span><span>3 attempts maximum</span></div><button className="primary" type="submit">Verify & continue <span>→</span></button></form>
         </section>
 
-        <aside className="client-dashboard">
-          <div className="dashboard-heading">
-            <div><p className="eyebrow">Process log</p><h2>Session Activity</h2><p>Recent authentication and service authorization activity.</p></div>
-            <button className="secondary small" onClick={() => setLogs([])}>Clear</button>
-          </div>
-          <div className="request-list">
-            {logs.map((log, index) => <div className="audit-line" key={`${log}-${index}`}>{index + 1}. {log}</div>)}
-          </div>
-        </aside>
+        <section className={`page ${page === "services" ? "active" : ""}`}>
+          <div className="hero"><span className="hero-icon">⌘</span><div><p className="eyebrow">AUTHORIZED SERVICES</p><h2>Good morning, {user.name.split(" ")[0]}</h2><p>Select a service available to <span>{tenant.name}</span>.</p></div></div>
+          <div className="service-grid"><article className="service-card featured"><div className="service-top"><span className="service-icon">▣</span><span className="approved">Enabled</span></div><h3>Access Card Ordering</h3><p>Request new, replacement, temporary, or updated access cards for your organization.</p><button className="primary" onClick={openService}>Open Access Card Ordering <span>→</span></button></article><article className="service-card muted"><div className="service-top"><span className="service-icon">◉</span><span className="soon">Coming soon</span></div><h3>Camera Ordering</h3><p>Order security camera equipment and supporting services.</p></article><article className="service-card muted"><div className="service-top"><span className="service-icon">◇</span><span className="soon">Coming soon</span></div><h3>Quote Requests</h3><p>Request a tailored quote from the BinaryGuard team.</p></article></div>
+          <section className="client-dashboard"><div className="dashboard-heading"><div><p className="eyebrow">MY DASHBOARD</p><h2>Submitted requests</h2><p>Review, edit, modify, or delete your submitted access card requests.</p></div><button className="secondary" type="button">Refresh</button></div><div className="client-summary"><article><b>{summary.total}</b><span>Total submitted</span></article><article><b>{summary.active}</b><span>Active requests</span></article><article><b>{summary.completed}</b><span>Completed</span></article></div><div className="client-request-list">{orders.length === 0 ? <article className="empty-state"><h3>No submitted requests yet</h3><p>Use Access Card Ordering to create your first request. It will appear here after submission.</p></article> : <div className="table-wrap"><table><thead><tr><th>Reference</th><th>Request type</th><th>Cardholder</th><th>Site</th><th>Status</th><th>Actions</th></tr></thead><tbody>{orders.map(o => <tr key={o.id}><td>{o.reference}</td><td>{o.request_type}</td><td>{o.cardholder_name}</td><td>{o.site_name}</td><td><span className="pill">{o.status}</span></td><td className="row-actions"><button className="secondary small" onClick={() => toast(`${o.reference}: ${o.status}`)}>View</button><button className="secondary small" onClick={() => editOrder(o.id)}>Edit</button><button className="danger small" onClick={() => setOrders(current => current.filter(x => x.id !== o.id))}>Delete</button></td></tr>)}</tbody></table></div>}</div></section>
+        </section>
+
+        <section className={`page ${page === "checking" ? "active" : ""}`}><div className="gate-card"><div className="spinner"></div><p className="eyebrow">SECURE CHECK</p><h2>Verifying service authorization</h2><p>We’re confirming your account activation, organization, service access, and role before loading the order form.</p><ul><li className="checked">Authenticated user</li><li className="checked">Activated user account</li><li className="checked">Active tenant</li><li className="checked">Access Card Ordering enabled</li><li className="checked">Authorized user role</li></ul></div></section>
+        <section className={`page ${page === "denied" ? "active" : ""}`}><div className="gate-card denied"><span className="denied-icon">!</span><p className="eyebrow">ACCESS DENIED</p><h2>You are not authorized</h2><p>You are not authorized to use the Access Card Ordering service.</p><button className="secondary" onClick={() => showPage("services")}>Return to services</button></div></section>
+
+        <section className={`page ${page === "order" ? "active" : ""}`}>
+          <div className="order-heading"><div><p className="eyebrow">ACCESS CARD ORDERING</p><h2>{editingOrderId ? "Edit access card request" : "New access card request"}</h2><p>{editingOrderId ? "Modify the request details below and save your changes." : "Complete the details below. Required fields are marked with an asterisk."}</p></div><span className="draft">{editingOrderId ? "Edit mode" : "Secure form"}</span></div>
+          <form onSubmit={submitOrder}>
+            <section className="form-section"><div className="section-title"><span>01</span><div><h3>Requester</h3><p>Loaded from your secure account</p></div><b className="readonly-pill">Read only</b></div><div className="identity-grid"><div><small>Requester</small><strong>{user.name}</strong></div><div><small>Email</small><strong>{user.email}</strong></div><div><small>Organization</small><strong>{user.org}</strong></div></div></section>
+            <section className="form-section"><div className="section-title"><span>02</span><div><h3>Request information</h3><p>Tell us what kind of card request this is</p></div></div><div className="form-grid"><label>Request type *<select value={orderForm.request_type} onChange={e => setOrderForm({ ...orderForm, request_type: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.request_type.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
+            <section className="form-section"><div className="section-title"><span>03</span><div><h3>Cardholder information</h3><p>Who is this access card for?</p></div></div><div className="form-grid"><label>Cardholder name *<input value={orderForm.cardholder_name} onChange={e => setOrderForm({ ...orderForm, cardholder_name: e.target.value })} required /></label><label>Cardholder email *<input type="email" value={orderForm.cardholder_email} onChange={e => setOrderForm({ ...orderForm, cardholder_email: e.target.value })} required /></label><label>Employee ID *<input value={orderForm.employee_id} onChange={e => setOrderForm({ ...orderForm, employee_id: e.target.value })} required /></label><label>Department *<input value={orderForm.department} onChange={e => setOrderForm({ ...orderForm, department: e.target.value })} required /></label></div></section>
+            <section className="form-section"><div className="section-title"><span>04</span><div><h3>Site & access</h3><p>Tenant-specific options are loaded automatically</p></div></div><div className="form-grid"><label>Site *<select value={orderForm.site_name} onChange={e => setOrderForm({ ...orderForm, site_name: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.site.map(x => <option key={x}>{x}</option>)}</select></label><label>Building *<select value={orderForm.building_address} onChange={e => setOrderForm({ ...orderForm, building_address: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.building.map(x => <option key={x}>{x}</option>)}</select></label><label>Floor / Area<input value={orderForm.floor} onChange={e => setOrderForm({ ...orderForm, floor: e.target.value })} /></label><label>Access level *<select value={orderForm.access_level} onChange={e => setOrderForm({ ...orderForm, access_level: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.access_level.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
+            <section className="form-section"><div className="section-title"><span>05</span><div><h3>Dates & notes</h3><p>Optional expiry date can be added for temporary cards</p></div></div><div className="form-grid"><label>Effective date *<input type="date" value={orderForm.effective_date} onChange={e => setOrderForm({ ...orderForm, effective_date: e.target.value })} required /></label><label>Expiry date <span className="optional">optional</span><input type="date" value={orderForm.expiry_date} onChange={e => setOrderForm({ ...orderForm, expiry_date: e.target.value })} /></label></div><label>Notes / remarks<textarea value={orderForm.notes} onChange={e => setOrderForm({ ...orderForm, notes: e.target.value })} /></label></section>
+            <div className="form-actions"><p><span>✓</span> Submission will be routed to {tenant.name} processing queue.</p><div className="form-action-buttons"><button className="secondary" type="button" onClick={() => showPage("services")}>Back to services</button><button className="primary" type="submit">{editingOrderId ? "Save changes" : "Submit access card order"} <span>→</span></button></div></div>
+          </form>
+        </section>
+
+        <section className={`page ${page === "success" ? "active" : ""}`}><div className="success-card"><span className="success-icon">✓</span><p className="eyebrow">ORDER SUBMITTED</p><h2>Your access card request has been received</h2><p>A confirmation will be sent to <b>{user.email}</b>. BinaryGuard will process the request according to the approved workflow.</p><div className="reference"><small>STATUS</small><strong>Submitted</strong><span>Pending review</span></div><div className="success-actions"><button className="primary" onClick={() => showPage("services")}>View my requests</button><button className="secondary" onClick={signOut}>Sign out</button></div></div></section>
+        <div className={`toast ${toastMessage ? "show" : ""}`}>{toastMessage}</div>
       </main>
     </div>
   );
