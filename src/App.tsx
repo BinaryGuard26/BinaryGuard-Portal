@@ -38,7 +38,7 @@ const dropdownOptions = {
 
 const pageTitles: Record<Page, [string, string]> = {
   auth: ["SECURE ACCESS", "Welcome to BinaryGuard"],
-  register: ["USER REGISTRATION", "Register company user"],
+  register: ["USER REGISTRATION", "User Registration"],
   otp: ["IDENTITY VERIFICATION", "Enter your security code"],
   services: ["CLIENT PORTAL", "Authorized services"],
   checking: ["SERVICE AUTHORIZATION", "Checking access"],
@@ -83,7 +83,6 @@ export default function App() {
     fullName: "",
     corporateEmail: "",
     organization: tenant.name,
-    
     department: "",
     requestedRole: "standard_user",
     reason: ""
@@ -225,34 +224,99 @@ export default function App() {
           <form className="card compact" onSubmit={login}>
             <label>Corporate email address<input type="email" value={user.email} onChange={e => setUser({ ...user, email: e.target.value })} required /></label>
             <button className="primary" type="submit">Continue securely <span>→</span></button>
-            <p className="form-note">Users cannot continue until an operator submits registration and an admin approves it in CPanel.</p>
+            <p className="form-note">Users cannot continue until a registration request is approved in Admin CPanel.</p>
             <div className="split-actions">
               <button
                 className="text-btn"
                 type="button"
                 onClick={() => showPage("register")}
               >
-                Register company user
+                User Registration
               </button>
             </div>
           </form>
         </section>
 
         <section className={`page ${page === "register" ? "active" : ""}`}>
-          <div className="hero"><span className="hero-icon">+</span><div><p className="eyebrow">USER REGISTRATION</p><h2>Register a company user</h2><p>Organization operators can submit new user requests. Access is granted only after Admin CPanel approval.</p></div></div>
+          <div className="hero">
+            <span className="hero-icon">+</span>
+            <div>
+              <p className="eyebrow">USER REGISTRATION</p>
+              <h2>User Registration</h2>
+              <p>Complete the form below to request access to the BinaryGuard Secure Client Portal. Your request will be reviewed by your administrator before access is granted.</p>
+            </div>
+          </div>
+
           <form className="card" onSubmit={register}>
             <div className="form-grid">
-              <label>Operator name *<input value={registration.operatorName} onChange={e => setRegistration({ ...registration, operatorName: e.target.value })} required /></label>
-              <label>Operator email *<input type="email" value={registration.operatorEmail} onChange={e => setRegistration({ ...registration, operatorEmail: e.target.value })} required /></label>
-              <label>Organization *<input value={tenant.name} readOnly /></label>
-              <label>Requested user role *<select value={registration.requestedRole} onChange={e => setRegistration({ ...registration, requestedRole: e.target.value })}><option value="tenant_user">Company User</option><option value="manager">Manager</option></select></label>
-              <label>Company user full name *<input value={registration.newUserName} onChange={e => setRegistration({ ...registration, newUserName: e.target.value })} required /></label>
-              <label>Company user email *<input type="email" value={registration.corporateEmail} onChange={e => setRegistration({ ...registration, newUserEmail: e.target.value })} required /></label>
-              <label>Department *<input value={registration.department} onChange={e => setRegistration({ ...registration, department: e.target.value })} required /></label>
-              <label>Reason for access *<input value={registration.reason} onChange={e => setRegistration({ ...registration, reason: e.target.value })} required /></label>
+              <label>
+                Full name *
+                <input
+                  value={registration.fullName}
+                  onChange={e => setRegistration({ ...registration, fullName: e.target.value })}
+                  required
+                />
+              </label>
+
+              <label>
+                Corporate email *
+                <input
+                  type="email"
+                  value={registration.corporateEmail}
+                  onChange={e => setRegistration({ ...registration, corporateEmail: e.target.value })}
+                  required
+                />
+              </label>
+
+              <label>
+                Organization *
+                <input value={registration.organization} readOnly />
+              </label>
+
+              <label>
+                Requested Access Level *
+                <select
+                  value={registration.requestedRole}
+                  onChange={e => setRegistration({ ...registration, requestedRole: e.target.value })}
+                  required
+                >
+                  <option value="standard_user">Standard User</option>
+                  <option value="operator">Operator</option>
+                </select>
+              </label>
+
+              <label>
+                Department *
+                <input
+                  value={registration.department}
+                  onChange={e => setRegistration({ ...registration, department: e.target.value })}
+                  required
+                />
+              </label>
+
+              <label>
+                Reason for access *
+                <input
+                  value={registration.reason}
+                  onChange={e => setRegistration({ ...registration, reason: e.target.value })}
+                  required
+                />
+              </label>
             </div>
-            <div className="approval-flow"><span>Operator submits request</span><i></i><span>Admin CPanel review</span><i></i><span>Account activated after approval</span></div>
-            <div className="form-actions"><p><span>✓</span> Creates a pending company-user registration request.</p><button className="secondary" type="button" onClick={() => showPage("auth")}>Back to login</button><button className="primary" type="submit">Submit registration request <span>→</span></button></div>
+
+            <div className="approval-flow">
+              <span>User submits request</span>
+              <i></i>
+              <span>Admin CPanel review</span>
+              <i></i>
+              <span>Account activated after approval</span>
+            </div>
+
+            <div className="form-actions">
+              <p><span>✓</span> Creates a pending user registration request.</p>
+              <button className="secondary" type="button" onClick={() => showPage("auth")}>Back to login</button>
+              <button className="primary" type="submit">Submit registration request <span>→</span></button>
+            </div>
           </form>
         </section>
 
