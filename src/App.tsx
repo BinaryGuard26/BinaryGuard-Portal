@@ -303,33 +303,33 @@ export default function App() {
                 />
               </label>
             </div>
+            
 
             <div className="registration-flow-cards">
-  <article>
-    <div className="flow-icon">▤</div>
-    <div>
-      <h4>1. User submits request</h4>
-      <p>Submit your registration request with required details.</p>
-    </div>
-  </article>
+              <article>
+                <div className="flow-icon">▤</div>
+                <div>
+                  <h4>1. User submits request</h4>
+                  <p>Submit your registration request with required details.</p>
+                </div>
+              </article>
 
-  <article>
-    <div className="flow-icon">盾</div>
-    <div>
-      <h4>2. OTP Verification</h4>
-      <p>Verify your identity using the one-time password (OTP).</p>
-    </div>
-  </article>
+              <article>
+                <div className="flow-icon">盾</div>
+                <div>
+                  <h4>2. OTP Verification</h4>
+                  <p>Verify your identity using the one-time password (OTP).</p>
+                </div>
+              </article>
 
-  <article>
-    <div className="flow-icon">✓</div>
-    <div>
-      <h4>3. Account Activation</h4>
-      <p>Your account will be activated after successful verification.</p>
-    </div>
-  </article>
-</div>
-            
+              <article>
+                <div className="flow-icon">✓</div>
+                <div>
+                  <h4>3. Account Activation</h4>
+                  <p>Your account will be activated after successful verification.</p>
+                </div>
+              </article>
+            </div>
             <div className="form-actions">
               <p><span>✓</span> Creates a pending user registration request.</p>
               <button className="secondary" type="button" onClick={() => showPage("auth")}>Back to login</button>
