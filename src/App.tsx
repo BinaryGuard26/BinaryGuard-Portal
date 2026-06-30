@@ -80,12 +80,12 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState({ name: "John Smith", email: "john.smith@gov.mb.ca", org: tenant.name });
   const [registration, setRegistration] = useState({
-    operatorName: "John Smith",
-    operatorEmail: "john.smith@gov.mb.ca",
-    newUserName: "",
-    newUserEmail: "",
+    fullName: "",
+    corporateEmail: "",
+    organization: tenant.name,
+    
     department: "",
-    requestedRole: "tenant_user",
+    requestedRole: "standard_user",
     reason: ""
   });
   const [orderForm, setOrderForm] = useState(blankOrder);
@@ -130,7 +130,7 @@ export default function App() {
 
   function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!registration.newUserEmail.toLowerCase().endsWith(tenant.approvedEmailDomain)) {
+    if (!registration.corporateEmail.toLowerCase().endsWith(tenant.approvedEmailDomain)) {
       toast("Registration is limited to approved organization email addresses.");
       return;
     }
@@ -247,7 +247,7 @@ export default function App() {
               <label>Organization *<input value={tenant.name} readOnly /></label>
               <label>Requested user role *<select value={registration.requestedRole} onChange={e => setRegistration({ ...registration, requestedRole: e.target.value })}><option value="tenant_user">Company User</option><option value="manager">Manager</option></select></label>
               <label>Company user full name *<input value={registration.newUserName} onChange={e => setRegistration({ ...registration, newUserName: e.target.value })} required /></label>
-              <label>Company user email *<input type="email" value={registration.newUserEmail} onChange={e => setRegistration({ ...registration, newUserEmail: e.target.value })} required /></label>
+              <label>Company user email *<input type="email" value={registration.corporateEmail} onChange={e => setRegistration({ ...registration, newUserEmail: e.target.value })} required /></label>
               <label>Department *<input value={registration.department} onChange={e => setRegistration({ ...registration, department: e.target.value })} required /></label>
               <label>Reason for access *<input value={registration.reason} onChange={e => setRegistration({ ...registration, reason: e.target.value })} required /></label>
             </div>
