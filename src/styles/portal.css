@@ -189,3 +189,110 @@ tr:last-child td{border-bottom:0}
     width: 100%;
   }
 }
+
+
+/* Standard workflow sections with matching professional card style */
+.workflow-section {
+  margin: 28px 0 30px;
+}
+
+.workflow-heading {
+  margin: 0 0 14px;
+}
+
+.workflow-heading h3 {
+  margin: 4px 0 6px;
+  font-size: 18px;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.workflow-heading p:not(.eyebrow) {
+  margin: 0;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.registration-flow-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+  margin: 0;
+}
+
+.registration-flow-cards article {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  min-height: 118px;
+  padding: 22px;
+  background: linear-gradient(135deg, #f7fffd, #ffffff);
+  border: 1px solid #cfe6e3;
+  border-radius: 10px;
+  box-shadow: 0 12px 30px rgba(16, 29, 53, 0.06);
+}
+
+.registration-flow-cards article:first-child {
+  border-left: 5px solid var(--teal);
+}
+
+.registration-flow-cards article:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  right: -14px;
+  top: 50%;
+  width: 26px;
+  height: 26px;
+  background: #ffffff;
+  border-top: 1px solid #cfe6e3;
+  border-right: 1px solid #cfe6e3;
+  transform: translateY(-50%) rotate(45deg);
+  z-index: 2;
+}
+
+.flow-icon {
+  width: 62px;
+  height: 62px;
+  border-radius: 999px;
+  background: #dff3ef;
+  color: var(--teal-dark);
+  display: grid;
+  place-items: center;
+  font-size: 24px;
+  font-weight: 900;
+  flex: 0 0 62px;
+}
+
+.registration-flow-cards h4 {
+  margin: 0 0 8px;
+  font-size: 16px;
+  color: var(--ink);
+  letter-spacing: -0.02em;
+}
+
+.registration-flow-cards p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.approval-flow-cards article:first-child {
+  border-left: 5px solid var(--teal-dark);
+}
+
+.approval-flow-cards .flow-icon {
+  background: #e4f3f2;
+}
+
+@media (max-width: 900px) {
+  .registration-flow-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-flow-cards article:not(:last-child)::after {
+    display: none;
+  }
+}
