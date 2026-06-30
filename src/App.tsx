@@ -305,11 +305,11 @@ export default function App() {
             </div>
 
             <div className="approval-flow">
-              <span>User submits request</span>
+              <span>1. User submits request</span>
               <i></i>
-              <span>Admin CPanel review</span>
+              <span>2. OTP Verification</span>
               <i></i>
-              <span>Account activated after approval</span>
+              <span>3. Account Activation</span>
             </div>
 
             <div className="form-actions">
