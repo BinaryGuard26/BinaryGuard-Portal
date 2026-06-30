@@ -226,7 +226,15 @@ export default function App() {
             <label>Corporate email address<input type="email" value={user.email} onChange={e => setUser({ ...user, email: e.target.value })} required /></label>
             <button className="primary" type="submit">Continue securely <span>→</span></button>
             <p className="form-note">Users cannot continue until an operator submits registration and an admin approves it in CPanel.</p>
-            <div className="split-actions"><button className="text-btn" type="button" onClick={() => showPage("register")}>Register company user</button><a className="text-btn" href="https://admin.binaryguard.ca" target="_blank" rel="noreferrer">Open Admin CPanel</a></div>
+            <div className="split-actions">
+              <button
+                className="text-btn"
+                type="button"
+                onClick={() => showPage("register")}
+              >
+                Register company user
+              </button>
+            </div>
           </form>
         </section>
 
