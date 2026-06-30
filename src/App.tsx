@@ -307,14 +307,14 @@ export default function App() {
 
             <section className="workflow-section">
               <div className="workflow-heading">
-                <p className="eyebrow">Registration Process</p>
-                <h3>Client self-registration workflow</h3>
+                <p className="eyebrow">User Registration Process</p>
+                <h3>User registration workflow</h3>
                 <p>These are the steps a user follows before access is activated.</p>
               </div>
 
               <div className="registration-flow-cards">
                 <article>
-                  <div className="flow-icon">▤</div>
+                  <div className="flow-icon">👤</div>
                   <div>
                     <h4>1. User submits request</h4>
                     <p>Submit your registration request with required details.</p>
@@ -341,14 +341,14 @@ export default function App() {
 
             <section className="workflow-section">
               <div className="workflow-heading">
-                <p className="eyebrow">Admin Approval Process</p>
-                <h3>Administrator review workflow</h3>
-                <p>These steps show how the submitted request is reviewed and approved.</p>
+                <p className="eyebrow">Operator Registration Process</p>
+                <h3>Operator registration workflow</h3>
+                <p>These steps show how an operator-submitted request is reviewed and approved.</p>
               </div>
 
               <div className="registration-flow-cards approval-flow-cards">
                 <article>
-                  <div className="flow-icon">👤</div>
+                  <div className="flow-icon">🤵🏻</div>
                   <div>
                     <h4>1. Operator submits request</h4>
                     <p>User registration request is submitted for approval.</p>
