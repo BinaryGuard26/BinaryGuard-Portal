@@ -311,7 +311,15 @@ export default function App() {
               <i></i>
               <span>Account activation</span>
             </div>
-
+            
+            <div className="approval-flow">
+              <span>Operator submits request</span>
+              <i></i>
+              <span>Admin CPanel review</span>
+              <i></i>
+              <span>Account activated after approval</span>
+            </div>
+            
             <div className="form-actions">
               <p><span>✓</span> Creates a pending user registration request.</p>
               <button className="secondary" type="button" onClick={() => showPage("auth")}>Back to login</button>
