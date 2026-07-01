@@ -1,5 +1,6 @@
 import { FormEvent, useMemo, useState } from "react";
 import "./styles/portal.css";
+import { supabase } from "./services/supabaseClient";
 
 type Page = "auth" | "register" | "otp" | "services" | "checking" | "denied" | "order" | "success";
 
@@ -127,13 +128,34 @@ export default function App() {
     showPage("otp");
   }
 
-  function register(event: FormEvent<HTMLFormElement>) {
+  async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!registration.corporateEmail.toLowerCase().endsWith(tenant.approvedEmailDomain)) {
-      toast("Registration is limited to approved organization email addresses.");
+
+    const { data: tenantData, error: tenantError } = await supabase
+      .rpc("find_tenant_by_email", {
+        p_email: registration.corporateEmail,
+      })
+      .single();
+
+    if (tenantError || !tenantData?.is_allowed) {
+      toast("This corporate email domain is not approved for portal access.");
       return;
     }
-    toast("Registration request submitted for admin approval.");
+
+    const { error } = await supabase.rpc("submit_registration_request", {
+      p_full_name: registration.fullName,
+      p_corporate_email: registration.corporateEmail,
+      p_department: registration.department,
+      p_requested_role: registration.requestedRole,
+      p_reason: registration.reason,
+    });
+
+    if (error) {
+      toast(error.message);
+      return;
+    }
+
+    toast("Registration request submitted successfully.");
     showPage("auth");
   }
 
