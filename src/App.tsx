@@ -4,6 +4,13 @@ import { supabase } from "./services/supabaseClient";
 
 type Page = "auth" | "register" | "otp" | "services" | "checking" | "denied" | "order" | "success";
 
+type TenantLookupResult = {
+  tenant_id: string;
+  tenant_name: string;
+  domain: string;
+  is_allowed: boolean;
+};
+
 type Order = {
   id: string;
   reference: string;
@@ -137,7 +144,9 @@ export default function App() {
       })
       .single();
 
-    if (tenantError || !tenantData?.is_allowed) {
+    const tenantLookup = tenantData as TenantLookupResult | null;
+
+    if (tenantError || !tenantLookup?.is_allowed) {
       toast("This corporate email domain is not approved for portal access.");
       return;
     }
