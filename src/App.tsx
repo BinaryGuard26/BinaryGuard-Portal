@@ -1,4 +1,4 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import "./styles/portal.css";
 import { requestOtp, verifyOtp } from "./services/api";
 
@@ -77,6 +77,7 @@ export default function App() {
   const [toastMessage, setToastMessage] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
   const [otpCode, setOtpCode] = useState("");
+  const [otpPurpose, setOtpPurpose] = useState<"registration" | "login">("login");
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState({ name: "John Smith", email: "john.smith@gov.mb.ca", org: tenant.name });
@@ -100,6 +101,30 @@ export default function App() {
     completed: orders.filter(order => order.status === "Completed").length
   }), [orders]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const otpEmail = params.get("otp_email");
+    const purpose = params.get("purpose") === "registration" ? "registration" : "login";
+
+    if (!otpEmail) return;
+
+    const normalizedEmail = otpEmail.trim().toLowerCase();
+
+    setUser(current => ({
+      ...current,
+      email: normalizedEmail,
+      org: tenant.name
+    }));
+
+    setOtpPurpose(purpose);
+    setOtpCode("");
+    setStatusText("OTP required");
+    setStatusOk(false);
+    showPage("otp");
+
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }, []);
+
   function toast(message: string) {
     setToastMessage(message);
     window.setTimeout(() => setToastMessage(""), 3200);
@@ -108,17 +133,6 @@ export default function App() {
   function showPage(next: Page) {
     setPage(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
-  }
-
-  function resetRegistrationForm() {
-    setRegistration({
-      fullName: "",
-      corporateEmail: "",
-      organization: tenant.name,
-      department: "",
-      requestedRole: "standard_user",
-      reason: ""
-    });
   }
 
   function signOut() {
@@ -138,6 +152,7 @@ export default function App() {
 
     try {
       setOtpLoading(true);
+      setOtpPurpose("login");
       const result = await requestOtp(user.email, "login");
 
       if (!result.ok) {
@@ -169,6 +184,7 @@ export default function App() {
 
     try {
       setOtpLoading(true);
+      setOtpPurpose("registration");
       const result = await requestOtp(email, "registration");
 
       if (!result.ok) {
@@ -185,7 +201,6 @@ export default function App() {
       setStatusText("OTP required");
       setStatusOk(false);
       toast("Registration request received. OTP sent to your corporate email.");
-      resetRegistrationForm();
       showPage("otp");
     } catch (error) {
       toast(error instanceof Error ? error.message : "Unable to send OTP.");
@@ -199,7 +214,7 @@ export default function App() {
 
     try {
       setOtpLoading(true);
-      const result = await verifyOtp(user.email, otpCode, "registration");
+      const result = await verifyOtp(user.email, otpCode, otpPurpose);
 
       if (!result.ok) {
         toast(result.message || "Invalid OTP code.");
@@ -445,14 +460,13 @@ export default function App() {
             <div className="form-actions">
               <p><span>✓</span> Creates a pending user registration request.</p>
               <button className="secondary" type="button" onClick={() => showPage("auth")}>Back to login</button>
-              <button className="secondary" type="button" onClick={resetRegistrationForm}>Clear form</button>
               <button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Sending OTP..." : "Submit registration request"} <span>→</span></button>
             </div>
           </form>
         </section>
 
         <section className={`page ${page === "otp" ? "active" : ""}`}>
-          <div className="hero"><span className="hero-icon">••</span><div><p className="eyebrow">LAYER 2</p><h2>Verify your identity</h2><p>We sent a six-digit code to <b>{user.email}</b>. It expires in 5 minutes.</p></div></div>
+          <div className="hero"><span className="hero-icon">••</span><div><p className="eyebrow">LAYER 2</p><h2>Verify your identity</h2><p>We sent a six-digit code to <b>{user.email}</b>. It expires in 5 minutes. Enter the code from your email below.</p></div></div>
           <form className="card compact" onSubmit={verify}><label>Verification code<input value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\\D/g, ""))} inputMode="numeric" maxLength={6} required /></label><div className="code-meta"><span>Use the code sent to your email.</span><span>3 attempts maximum</span></div><button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Verifying..." : "Verify & continue"} <span>→</span></button></form>
         </section>
 
