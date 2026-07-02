@@ -110,6 +110,17 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+  function resetRegistrationForm() {
+    setRegistration({
+      fullName: "",
+      corporateEmail: "",
+      organization: tenant.name,
+      department: "",
+      requestedRole: "standard_user",
+      reason: ""
+    });
+  }
+
   function signOut() {
     setStatusText("Not verified");
     setStatusOk(false);
@@ -174,6 +185,7 @@ export default function App() {
       setStatusText("OTP required");
       setStatusOk(false);
       toast("Registration request received. OTP sent to your corporate email.");
+      resetRegistrationForm();
       showPage("otp");
     } catch (error) {
       toast(error instanceof Error ? error.message : "Unable to send OTP.");
@@ -433,6 +445,7 @@ export default function App() {
             <div className="form-actions">
               <p><span>✓</span> Creates a pending user registration request.</p>
               <button className="secondary" type="button" onClick={() => showPage("auth")}>Back to login</button>
+              <button className="secondary" type="button" onClick={resetRegistrationForm}>Clear form</button>
               <button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Sending OTP..." : "Submit registration request"} <span>→</span></button>
             </div>
           </form>
