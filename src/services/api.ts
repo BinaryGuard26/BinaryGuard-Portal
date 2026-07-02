@@ -3,6 +3,8 @@ const API_BASE_URL =
   import.meta.env.VITE_PORTAL_API_URL ||
   "https://binaryguard-api-44d2u.ondigitalocean.app";
 
+type OtpPurpose = "registration" | "login";
+
 type ApiResult = {
   ok: boolean;
   success?: boolean;
@@ -22,12 +24,7 @@ async function postJson(path: string, body: unknown): Promise<ApiResult> {
     body: JSON.stringify(body),
   });
 
-  let result: ApiResult;
-  try {
-    result = (await response.json()) as ApiResult;
-  } catch {
-    result = { ok: false, message: `API returned HTTP ${response.status}` };
-  }
+  const result = (await response.json()) as ApiResult;
 
   if (!response.ok || !result.ok) {
     throw new Error(result.message || "API request failed.");
@@ -36,18 +33,14 @@ async function postJson(path: string, body: unknown): Promise<ApiResult> {
   return result;
 }
 
-export function requestOtp(email: string, purpose: "registration" | "login" = "registration") {
+export function requestOtp(email: string, purpose: OtpPurpose = "login") {
   return postJson("/api/otp/request", {
     email,
     purpose,
   });
 }
 
-export function verifyOtp(
-  email: string,
-  code: string,
-  purpose: "registration" | "login" = "registration",
-) {
+export function verifyOtp(email: string, code: string, purpose: OtpPurpose = "login") {
   return postJson("/api/otp/verify", {
     email,
     code,
