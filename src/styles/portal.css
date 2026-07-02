@@ -296,3 +296,106 @@ tr:last-child td{border-bottom:0}
     display: none;
   }
 }
+@media (max-width: 900px) {
+  .app-shell {
+    display: block;
+  }
+
+  .sidebar {
+    position: relative;
+    width: 100%;
+    min-height: auto;
+    padding: 20px;
+  }
+
+  main {
+    margin-left: 0;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 24px;
+  }
+
+  .page {
+    padding: 24px 16px;
+  }
+
+  .hero {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .card {
+    width: 100%;
+    padding: 22px;
+  }
+
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-flow-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .registration-flow-cards article::after {
+    display: none;
+  }
+
+  .form-actions {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+
+  .form-actions button {
+    width: 100%;
+  }
+
+  .service-grid,
+  .client-summary,
+  .identity-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .brand strong {
+    font-size: 20px;
+  }
+
+  .topbar h1,
+  .hero h2 {
+    font-size: 24px;
+  }
+
+  .card {
+    padding: 18px;
+    border-radius: 16px;
+  }
+
+  input,
+  select,
+  textarea,
+  button {
+    font-size: 15px;
+  }
+
+  .registration-flow-cards article {
+    padding: 18px;
+    gap: 14px;
+  }
+
+  .flow-icon {
+    width: 52px;
+    height: 52px;
+    flex-basis: 52px;
+  }
+}
