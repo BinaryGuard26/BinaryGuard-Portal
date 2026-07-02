@@ -1,15 +1,8 @@
 import { FormEvent, useMemo, useState } from "react";
 import "./styles/portal.css";
-import { supabase } from "./services/supabaseClient";
+import { requestOtp, verifyOtp } from "./services/api";
 
 type Page = "auth" | "register" | "otp" | "services" | "checking" | "denied" | "order" | "success";
-
-type TenantLookupResult = {
-  tenant_id: string;
-  tenant_name: string;
-  domain: string;
-  is_allowed: boolean;
-};
 
 type Order = {
   id: string;
@@ -36,7 +29,6 @@ const tenant = {
   services: { access_card_ordering: true }
 };
 
-const otp = "248106";
 const dropdownOptions = {
   request_type: ["New Card", "Replacement Card", "Temporary Card", "Cancel Card", "Access Change"],
   access_level: ["Standard Access", "Manager Access", "Restricted Area Access"],
@@ -83,7 +75,8 @@ export default function App() {
   const [statusText, setStatusText] = useState("Not verified");
   const [statusOk, setStatusOk] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
-  const [otpCode, setOtpCode] = useState(otp);
+  const [otpLoading, setOtpLoading] = useState(false);
+  const [otpCode, setOtpCode] = useState("");
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState({ name: "John Smith", email: "john.smith@gov.mb.ca", org: tenant.name });
@@ -120,63 +113,96 @@ export default function App() {
   function signOut() {
     setStatusText("Not verified");
     setStatusOk(false);
-    setOtpCode(otp);
+    setOtpCode("");
     showPage("auth");
   }
 
-  function login(event: FormEvent<HTMLFormElement>) {
+  async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+
     if (!user.email.toLowerCase().endsWith(tenant.approvedEmailDomain)) {
       toast("This email domain is not approved for portal access.");
       return;
     }
-    setStatusText("OTP required");
-    setStatusOk(false);
-    showPage("otp");
+
+    try {
+      setOtpLoading(true);
+      const result = await requestOtp(user.email, "login");
+
+      if (!result.ok) {
+        toast(result.message || "Unable to send OTP.");
+        return;
+      }
+
+      setOtpCode("");
+      setStatusText("OTP required");
+      setStatusOk(false);
+      toast("A six-digit OTP has been sent to your email.");
+      showPage("otp");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Unable to send OTP.");
+    } finally {
+      setOtpLoading(false);
+    }
   }
 
   async function register(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const { data: tenantData, error: tenantError } = await supabase
-      .rpc("find_tenant_by_email", {
-        p_email: registration.corporateEmail,
-      })
-      .single();
+    const email = registration.corporateEmail.trim().toLowerCase();
 
-    const tenantLookup = tenantData as TenantLookupResult | null;
-
-    if (tenantError || !tenantLookup?.is_allowed) {
-      toast("This corporate email domain is not approved for portal access.");
+    if (!email.endsWith(tenant.approvedEmailDomain)) {
+      toast("Registration is limited to approved organization email addresses.");
       return;
     }
 
-    const { error } = await supabase.rpc("submit_registration_request", {
-      p_full_name: registration.fullName,
-      p_corporate_email: registration.corporateEmail,
-      p_department: registration.department,
-      p_requested_role: registration.requestedRole,
-      p_reason: registration.reason,
-    });
+    try {
+      setOtpLoading(true);
+      const result = await requestOtp(email, "registration");
 
-    if (error) {
-      toast(error.message);
-      return;
+      if (!result.ok) {
+        toast(result.message || "Unable to send OTP.");
+        return;
+      }
+
+      setUser({
+        name: registration.fullName || "Portal User",
+        email,
+        org: registration.organization || tenant.name,
+      });
+      setOtpCode("");
+      setStatusText("OTP required");
+      setStatusOk(false);
+      toast("Registration request received. OTP sent to your corporate email.");
+      showPage("otp");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Unable to send OTP.");
+    } finally {
+      setOtpLoading(false);
     }
-
-    toast("Registration request submitted successfully.");
-    showPage("auth");
   }
 
-  function verify(event: FormEvent<HTMLFormElement>) {
+  async function verify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (otpCode !== otp) {
-      toast("Invalid OTP code.");
-      return;
+
+    try {
+      setOtpLoading(true);
+      const result = await verifyOtp(user.email, otpCode, "registration");
+
+      if (!result.ok) {
+        toast(result.message || "Invalid OTP code.");
+        return;
+      }
+
+      setStatusText("Verified");
+      setStatusOk(true);
+      toast("OTP verified successfully.");
+      showPage("services");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Unable to verify OTP.");
+    } finally {
+      setOtpLoading(false);
     }
-    setStatusText("Verified");
-    setStatusOk(true);
-    showPage("services");
   }
 
   function openService() {
@@ -254,7 +280,7 @@ export default function App() {
           <div className="hero"><span className="hero-icon">→</span><div><p className="eyebrow">LAYER 1</p><h2>Corporate access login</h2><p>Use your approved organization email to enter the secure client portal.</p></div></div>
           <form className="card compact" onSubmit={login}>
             <label>Corporate email address<input type="email" value={user.email} onChange={e => setUser({ ...user, email: e.target.value })} required /></label>
-            <button className="primary" type="submit">Continue securely <span>→</span></button>
+            <button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Sending OTP..." : "Continue securely"} <span>→</span></button>
             <p className="form-note">Users cannot continue until a registration request is approved in Admin CPanel.</p>
             <div className="split-actions">
               <button
@@ -407,14 +433,14 @@ export default function App() {
             <div className="form-actions">
               <p><span>✓</span> Creates a pending user registration request.</p>
               <button className="secondary" type="button" onClick={() => showPage("auth")}>Back to login</button>
-              <button className="primary" type="submit">Submit registration request <span>→</span></button>
+              <button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Sending OTP..." : "Submit registration request"} <span>→</span></button>
             </div>
           </form>
         </section>
 
         <section className={`page ${page === "otp" ? "active" : ""}`}>
           <div className="hero"><span className="hero-icon">••</span><div><p className="eyebrow">LAYER 2</p><h2>Verify your identity</h2><p>We sent a six-digit code to <b>{user.email}</b>. It expires in 5 minutes.</p></div></div>
-          <form className="card compact" onSubmit={verify}><label>Verification code<input value={otpCode} onChange={e => setOtpCode(e.target.value)} inputMode="numeric" maxLength={6} required /></label><div className="code-meta"><span>Demo code: <b>248106</b></span><span>3 attempts maximum</span></div><button className="primary" type="submit">Verify & continue <span>→</span></button></form>
+          <form className="card compact" onSubmit={verify}><label>Verification code<input value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\\D/g, ""))} inputMode="numeric" maxLength={6} required /></label><div className="code-meta"><span>Use the code sent to your email.</span><span>3 attempts maximum</span></div><button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Verifying..." : "Verify & continue"} <span>→</span></button></form>
         </section>
 
         <section className={`page ${page === "services" ? "active" : ""}`}>
