@@ -15,13 +15,19 @@ type ApiResult = {
 async function postJson(path: string, body: unknown): Promise<ApiResult> {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     method: "POST",
+    mode: "cors",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
   });
 
-  const result = (await response.json()) as ApiResult;
+  let result: ApiResult;
+  try {
+    result = (await response.json()) as ApiResult;
+  } catch {
+    result = { ok: false, message: `API returned HTTP ${response.status}` };
+  }
 
   if (!response.ok || !result.ok) {
     throw new Error(result.message || "API request failed.");
