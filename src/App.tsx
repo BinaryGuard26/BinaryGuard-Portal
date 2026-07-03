@@ -494,7 +494,7 @@ export default function App() {
         </section>
 
         <section className={`page ${page === "otp" ? "active" : ""}`}>
-          <div className="hero"><span className="hero-icon">••</span><div><p className="eyebrow">LAYER 2</p><h2>Verify your identity</h2><p>We sent a six-digit code to <b>{user.email}</b>. It expires in 5 minutes.</p></div></div>
+          <div className="hero"><span className="hero-icon">••</span><div><p className="eyebrow">LAYER 2</p><h2>Verify your identity</h2><p>We sent a six-digit code to <b>{user.email}</b>. It expires in 10 minutes.</p></div></div>
           <form className="card compact" onSubmit={verify}>
             <label>
               Verification code
