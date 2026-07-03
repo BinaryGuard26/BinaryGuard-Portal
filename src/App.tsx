@@ -76,6 +76,8 @@ export default function App() {
   const [statusOk, setStatusOk] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
   const [otpLoading, setOtpLoading] = useState(false);
+  const [otpExpiresAt, setOtpExpiresAt] = useState<number | null>(null);
+  const [otpSecondsLeft, setOtpSecondsLeft] = useState(0);
   const [otpCode, setOtpCode] = useState("");
   const [otpPurpose, setOtpPurpose] = useState<"registration" | "login">("login");
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
@@ -102,28 +104,49 @@ export default function App() {
   }), [orders]);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const otpEmail = params.get("otp_email");
-    const purpose = params.get("purpose") === "registration" ? "registration" : "login";
+    if (!otpExpiresAt) {
+      setOtpSecondsLeft(0);
+      return;
+    }
 
-    if (!otpEmail) return;
+    function updateCountdown() {
+      setOtpSecondsLeft(Math.max(0, Math.ceil((otpExpiresAt - Date.now()) / 1000)));
+    }
 
-    const normalizedEmail = otpEmail.trim().toLowerCase();
+    updateCountdown();
+    const timer = window.setInterval(updateCountdown, 1000);
+    return () => window.clearInterval(timer);
+  }, [otpExpiresAt]);
 
-    setUser(current => ({
-      ...current,
-      email: normalizedEmail,
-      org: tenant.name
-    }));
+  function startOtpTimer(minutes: number) {
+    setOtpExpiresAt(Date.now() + minutes * 60 * 1000);
+  }
 
-    setOtpPurpose(purpose);
-    setOtpCode("");
-    setStatusText("OTP required");
-    setStatusOk(false);
-    showPage("otp");
+  function formatOtpTime(totalSeconds: number) {
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = totalSeconds % 60;
+    return `${minutes}:${String(seconds).padStart(2, "0")}`;
+  }
 
-    window.history.replaceState({}, document.title, window.location.pathname);
-  }, []);
+  async function resendOtp() {
+    try {
+      setOtpLoading(true);
+      const result = await requestOtp(user.email, otpPurpose);
+
+      if (!result.ok) {
+        toast(result.message || "Unable to resend OTP.");
+        return;
+      }
+
+      setOtpCode("");
+      startOtpTimer(result.expires_in_minutes || 10);
+      toast("A new OTP has been sent to your email.");
+    } catch (error) {
+      toast(error instanceof Error ? error.message : "Unable to resend OTP.");
+    } finally {
+      setOtpLoading(false);
+    }
+  }
 
   function toast(message: string) {
     setToastMessage(message);
@@ -139,6 +162,7 @@ export default function App() {
     setStatusText("Not verified");
     setStatusOk(false);
     setOtpCode("");
+    setOtpExpiresAt(null);
     showPage("auth");
   }
 
@@ -163,6 +187,7 @@ export default function App() {
       setOtpCode("");
       setStatusText("OTP required");
       setStatusOk(false);
+      startOtpTimer(result.expires_in_minutes || 10);
       toast("A six-digit OTP has been sent to your email.");
       showPage("otp");
     } catch (error) {
@@ -200,6 +225,7 @@ export default function App() {
       setOtpCode("");
       setStatusText("OTP required");
       setStatusOk(false);
+      startOtpTimer(result.expires_in_minutes || 10);
       toast("Registration request received. OTP sent to your corporate email.");
       showPage("otp");
     } catch (error) {
@@ -466,8 +492,44 @@ export default function App() {
         </section>
 
         <section className={`page ${page === "otp" ? "active" : ""}`}>
-          <div className="hero"><span className="hero-icon">••</span><div><p className="eyebrow">LAYER 2</p><h2>Verify your identity</h2><p>We sent a six-digit code to <b>{user.email}</b>. It expires in 5 minutes. Enter the code from your email below.</p></div></div>
-          <form className="card compact" onSubmit={verify}><label>Verification code<input value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\\D/g, ""))} inputMode="numeric" maxLength={6} required /></label><div className="code-meta"><span>Use the code sent to your email.</span><span>3 attempts maximum</span></div><button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Verifying..." : "Verify & continue"} <span>→</span></button></form>
+          <div className="hero"><span className="hero-icon">••</span><div><p className="eyebrow">LAYER 2</p><h2>Verify your identity</h2><p>We sent a six-digit code to <b>{user.email}</b>. It expires in 5 minutes.</p></div></div>
+          <form className="card compact" onSubmit={verify}>
+            <label>
+              Verification code
+              <input
+                value={otpCode}
+                onChange={e => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                inputMode="numeric"
+                maxLength={6}
+                required
+              />
+            </label>
+
+            <div className="otp-timer-panel">
+              {otpSecondsLeft > 0 ? (
+                <>
+                  <span className="otp-timer-label">Code expires in</span>
+                  <strong>{formatOtpTime(otpSecondsLeft)}</strong>
+                </>
+              ) : (
+                <>
+                  <span className="otp-timer-label">OTP expired</span>
+                  <button className="text-btn" type="button" onClick={resendOtp} disabled={otpLoading}>
+                    {otpLoading ? "Sending..." : "Resend OTP"}
+                  </button>
+                </>
+              )}
+            </div>
+
+            <div className="code-meta">
+              <span>Use the code sent to your email.</span>
+              <span>3 attempts maximum</span>
+            </div>
+
+            <button className="primary" type="submit" disabled={otpLoading || otpSecondsLeft <= 0}>
+              {otpLoading ? "Verifying..." : "Verify & continue"} <span>→</span>
+            </button>
+          </form>
         </section>
 
         <section className={`page ${page === "services" ? "active" : ""}`}>
