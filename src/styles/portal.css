@@ -399,6 +399,7 @@ tr:last-child td{border-bottom:0}
     flex-basis: 52px;
   }
 }
+/* OTP countdown and resend */
 .otp-timer-panel {
   margin: 14px 0 10px;
   padding: 14px 16px;
