@@ -103,18 +103,30 @@ export default function App() {
     completed: orders.filter(order => order.status === "Completed").length
   }), [orders]);
 
+  function toast(message: string) {
+    setToastMessage(message);
+    window.setTimeout(() => setToastMessage(""), 3200);
+  }
+
+  function showPage(next: Page) {
+    setPage(next);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
   useEffect(() => {
-    if (!otpExpiresAt) {
+    if (otpExpiresAt === null) {
       setOtpSecondsLeft(0);
       return;
     }
 
-    function updateCountdown() {
-      setOtpSecondsLeft(Math.max(0, Math.ceil((otpExpiresAt - Date.now()) / 1000)));
-    }
+    const updateCountdown = () => {
+      const seconds = Math.max(0, Math.ceil((otpExpiresAt - Date.now()) / 1000));
+      setOtpSecondsLeft(seconds);
+    };
 
     updateCountdown();
     const timer = window.setInterval(updateCountdown, 1000);
+
     return () => window.clearInterval(timer);
   }, [otpExpiresAt]);
 
@@ -146,16 +158,6 @@ export default function App() {
     } finally {
       setOtpLoading(false);
     }
-  }
-
-  function toast(message: string) {
-    setToastMessage(message);
-    window.setTimeout(() => setToastMessage(""), 3200);
-  }
-
-  function showPage(next: Page) {
-    setPage(next);
-    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function signOut() {
