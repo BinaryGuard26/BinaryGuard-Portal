@@ -535,3 +535,47 @@ tr:last-child td{border-bottom:0}
   border-color: var(--teal);
   box-shadow: 0 0 0 3px rgba(15, 145, 140, 0.12);
 }
+/* 50/50 username and domain selector */
+.email-input.domain-select {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  width: 100%;
+}
+
+.email-input.domain-select input {
+  width: 100%;
+  min-width: 0;
+  border-radius: 10px 0 0 10px;
+  border-right: 0;
+}
+
+.email-input.domain-select select,
+.email-domain-select {
+  width: 100%;
+  min-width: 0;
+  border-radius: 0 10px 10px 0;
+  border-left: 1px solid #cfe6e3;
+  background: #eef8f7;
+  color: var(--teal-dark);
+  font-weight: 800;
+  padding: 0 18px;
+}
+
+@media (max-width: 520px) {
+  .email-input.domain-select {
+    grid-template-columns: 1fr;
+  }
+
+  .email-input.domain-select input {
+    border-radius: 10px 10px 0 0;
+    border-right: 1px solid #cfe6e3;
+  }
+
+  .email-input.domain-select select,
+  .email-domain-select {
+    border-radius: 0 0 10px 10px;
+    border-left: 1px solid #cfe6e3;
+    border-top: 0;
+    min-height: 48px;
+  }
+}
