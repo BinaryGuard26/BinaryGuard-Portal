@@ -579,3 +579,67 @@ tr:last-child td{border-bottom:0}
     min-height: 48px;
   }
 }
+/* Login username + domain dropdown - 50/50 enterprise layout */
+.email-input-group {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
+  width: 100% !important;
+  align-items: stretch !important;
+}
+
+.email-input-group input[type="text"] {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 52px !important;
+  border: 1px solid #cfd8e3 !important;
+  border-right: 0 !important;
+  border-radius: 12px 0 0 12px !important;
+  background: #ffffff !important;
+  padding: 0 16px !important;
+  font-weight: 700 !important;
+  color: #0f172a !important;
+}
+
+.email-input-group input[type="text"]::placeholder {
+  color: #94a3b8 !important;
+  font-weight: 600 !important;
+}
+
+.email-domain-select {
+  display: block !important;
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 52px !important;
+  border: 1px solid #cfd8e3 !important;
+  border-left: 1px solid #cfe6e3 !important;
+  border-radius: 0 12px 12px 0 !important;
+  background: #eef8f7 !important;
+  color: #0f766e !important;
+  font-weight: 800 !important;
+  padding: 0 18px !important;
+  cursor: pointer !important;
+}
+
+.email-input-group:focus-within input[type="text"],
+.email-input-group:focus-within .email-domain-select {
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 0 3px rgba(15, 145, 140, 0.10) !important;
+}
+
+@media (max-width: 520px) {
+  .email-input-group {
+    grid-template-columns: 1fr !important;
+  }
+
+  .email-input-group input[type="text"] {
+    border-right: 1px solid #cfd8e3 !important;
+    border-radius: 12px 12px 0 0 !important;
+  }
+
+  .email-domain-select {
+    border-left: 1px solid #cfd8e3 !important;
+    border-top: 0 !important;
+    border-radius: 0 0 12px 12px !important;
+  }
+}
