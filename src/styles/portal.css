@@ -579,10 +579,10 @@ tr:last-child td{border-bottom:0}
     min-height: 48px;
   }
 }
-/* Login username + domain dropdown - 70/30 enterprise layout */
+/* Login username + domain dropdown - 50/50 enterprise layout */
 .email-input-group {
   display: grid !important;
-  grid-template-columns: 70% 30% !important;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) !important;
   width: 100% !important;
   align-items: stretch !important;
 }
