@@ -25,6 +25,7 @@ type Order = {
 const tenant = {
   name: "Government of Manitoba",
   approvedEmailDomain: "@gov.mb.ca",
+  approvedEmailDomains: ["@gov.mb.ca", "@binaryguard.ca"],
   active: true,
   services: { access_card_ordering: true }
 };
@@ -84,6 +85,7 @@ export default function App() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState({ name: "John Smith", email: "john.smith@gov.mb.ca", org: tenant.name });
   const [username, setUsername] = useState("john.smith");
+  const [selectedDomain, setSelectedDomain] = useState(tenant.approvedEmailDomain);
   const [registration, setRegistration] = useState({
     fullName: "",
     corporateEmail: "",
@@ -171,7 +173,15 @@ export default function App() {
     setUsername(cleanUsername);
     setUser(current => ({
       ...current,
-      email: `${cleanUsername}${tenant.approvedEmailDomain}`
+      email: `${cleanUsername}${selectedDomain}`
+    }));
+  }
+
+  function updateDomain(domain: string) {
+    setSelectedDomain(domain);
+    setUser(current => ({
+      ...current,
+      email: `${username.trim().toLowerCase()}${domain}`
     }));
   }
 
@@ -180,14 +190,16 @@ export default function App() {
     setStatusOk(false);
     setOtpCode("");
     setOtpExpiresAt(null);
-    setUsername(user.email.replace(tenant.approvedEmailDomain, ""));
+    const matchedDomain = tenant.approvedEmailDomains.find(domain => user.email.endsWith(domain)) || tenant.approvedEmailDomain;
+    setSelectedDomain(matchedDomain);
+    setUsername(user.email.replace(matchedDomain, ""));
     showPage("auth");
   }
 
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const loginEmail = `${username.trim().toLowerCase()}${tenant.approvedEmailDomain}`;
+    const loginEmail = `${username.trim().toLowerCase()}${selectedDomain}`;
 
     if (!username.trim()) {
       toast("Please enter your corporate username.");
@@ -224,7 +236,7 @@ export default function App() {
 
     const email = registration.corporateEmail.trim().toLowerCase();
 
-    if (!email.endsWith(tenant.approvedEmailDomain)) {
+    if (!tenant.approvedEmailDomains.some(domain => email.endsWith(domain))) {
       toast("Registration is limited to approved organization email addresses.");
       return;
     }
@@ -365,7 +377,16 @@ export default function App() {
                   autoComplete="username"
                   required
                 />
-                <span className="email-domain-suffix">{tenant.approvedEmailDomain}</span>
+                <select
+                  className="email-domain-select"
+                  value={selectedDomain}
+                  onChange={e => updateDomain(e.target.value)}
+                  aria-label="Corporate email domain"
+                >
+                  {tenant.approvedEmailDomains.map(domain => (
+                    <option key={domain} value={domain}>{domain}</option>
+                  ))}
+                </select>
               </div>
             </label>
             <button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Sending OTP..." : "Continue securely"} <span>→</span></button>
