@@ -83,6 +83,7 @@ export default function App() {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState({ name: "John Smith", email: "john.smith@gov.mb.ca", org: tenant.name });
+  const [username, setUsername] = useState("john.smith");
   const [registration, setRegistration] = useState({
     fullName: "",
     corporateEmail: "",
@@ -160,26 +161,45 @@ export default function App() {
     }
   }
 
+
+  function updateUsername(value: string) {
+    const cleanUsername = value
+      .toLowerCase()
+      .replace(/@.*/, "")
+      .replace(/[^a-z0-9._-]/g, "");
+
+    setUsername(cleanUsername);
+    setUser(current => ({
+      ...current,
+      email: `${cleanUsername}${tenant.approvedEmailDomain}`
+    }));
+  }
+
   function signOut() {
     setStatusText("Not verified");
     setStatusOk(false);
     setOtpCode("");
     setOtpExpiresAt(null);
+    setUsername(user.email.replace(tenant.approvedEmailDomain, ""));
     showPage("auth");
   }
 
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!user.email.toLowerCase().endsWith(tenant.approvedEmailDomain)) {
-      toast("This email domain is not approved for portal access.");
+    const loginEmail = `${username.trim().toLowerCase()}${tenant.approvedEmailDomain}`;
+
+    if (!username.trim()) {
+      toast("Please enter your corporate username.");
       return;
     }
+
+    setUser(current => ({ ...current, email: loginEmail }));
 
     try {
       setOtpLoading(true);
       setOtpPurpose("login");
-      const result = await requestOtp(user.email, "login");
+      const result = await requestOtp(loginEmail, "login");
 
       if (!result.ok) {
         toast(result.message || "Unable to send OTP.");
@@ -334,7 +354,20 @@ export default function App() {
         <section className={`page ${page === "auth" ? "active" : ""}`}>
           <div className="hero"><span className="hero-icon">→</span><div><p className="eyebrow">LAYER 1</p><h2>Corporate access login</h2><p>Use your approved organization email to enter the secure client portal.</p></div></div>
           <form className="card compact" onSubmit={login}>
-            <label>Corporate email address<input type="email" value={user.email} onChange={e => setUser({ ...user, email: e.target.value })} required /></label>
+            <label>
+              Corporate email address
+              <div className="email-input-group">
+                <input
+                  type="text"
+                  value={username}
+                  placeholder="john.smith"
+                  onChange={e => updateUsername(e.target.value)}
+                  autoComplete="username"
+                  required
+                />
+                <span className="email-domain-suffix">{tenant.approvedEmailDomain}</span>
+              </div>
+            </label>
             <button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Sending OTP..." : "Continue securely"} <span>→</span></button>
             <p className="form-note">Users cannot continue until a registration request is approved in Admin CPanel.</p>
             <div className="split-actions">
