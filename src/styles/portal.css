@@ -643,3 +643,30 @@ tr:last-child td{border-bottom:0}
     border-radius: 0 0 12px 12px !important;
   }
 }
+
+
+/* Enterprise journey locking after authentication */
+.journey-step:disabled,
+.journey-step.disabled-step {
+  opacity: 0.45 !important;
+  pointer-events: none !important;
+  cursor: default !important;
+}
+
+.journey-step:disabled:hover,
+.journey-step.disabled-step:hover {
+  background: transparent !important;
+}
+
+.journey-step.done:disabled i,
+.journey-step.done.disabled-step i {
+  background: #1a805d;
+  border-color: #1a805d;
+  color: #fff;
+}
+
+.journey-step.active:not(:disabled) {
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
