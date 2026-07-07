@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import "./styles/portal.css";
 import { requestOtp, verifyOtp } from "./services/api";
 
@@ -125,6 +125,7 @@ export default function App() {
   const [otpSecondsLeft, setOtpSecondsLeft] = useState(0);
   const [otpCode, setOtpCode] = useState("");
   const [otpPurpose, setOtpPurpose] = useState<"registration" | "login">("login");
+  const otpInputRef = useRef<HTMLInputElement | null>(null);
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState({ name: getDisplayNameFromEmail("john.smith@gov.mb.ca"), email: "john.smith@gov.mb.ca", org: getOrgFromEmail("john.smith@gov.mb.ca") });
@@ -168,6 +169,49 @@ export default function App() {
     setPage(next);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const otpEmail = params.get("otp_email");
+    const purposeParam = params.get("purpose");
+    const normalizedPurpose = purposeParam === "registration" ? "registration" : purposeParam === "login" ? "login" : null;
+
+    if (!otpEmail || !normalizedPurpose) return;
+
+    const decodedEmail = decodeURIComponent(otpEmail).trim().toLowerCase();
+    const matchedDomain = tenant.approvedEmailDomains.find(domain => decodedEmail.endsWith(domain));
+
+    if (!decodedEmail.includes("@") || !matchedDomain) {
+      toast("Invalid or unsupported OTP verification link.");
+      window.history.replaceState({}, document.title, window.location.pathname);
+      return;
+    }
+
+    const cleanUsername = decodedEmail.replace(matchedDomain, "");
+
+    setSelectedDomain(matchedDomain);
+    setUsername(cleanUsername);
+    setUser({
+      name: getDisplayNameFromEmail(decodedEmail),
+      email: decodedEmail,
+      org: getOrgFromEmail(decodedEmail),
+    });
+    setOtpPurpose(normalizedPurpose);
+    setOtpCode("");
+    setStatusText("OTP required");
+    setStatusOk(false);
+    startOtpTimer(10);
+    showPage("otp");
+
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }, []);
+
+  useEffect(() => {
+    if (page === "otp") {
+      window.setTimeout(() => otpInputRef.current?.focus(), 150);
+    }
+  }, [page]);
 
   useEffect(() => {
     if (otpExpiresAt === null) {
@@ -267,6 +311,7 @@ export default function App() {
       email: `${cleanUsername}${matchedDomain}`,
       org: getOrgFromEmail(`${cleanUsername}${matchedDomain}`)
     });
+    window.history.replaceState({}, document.title, window.location.pathname);
     showPage("auth");
   }
 
@@ -646,6 +691,7 @@ export default function App() {
             <label>
               Verification code
               <input
+                ref={otpInputRef}
                 value={otpCode}
                 onChange={e => setOtpCode(e.target.value.replace(/\D/g, ""))}
                 inputMode="numeric"
