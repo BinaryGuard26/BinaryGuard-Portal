@@ -30,6 +30,11 @@ const tenant = {
   services: { access_card_ordering: true }
 };
 
+const organizationOptions = [
+  "Manitoba Housing",
+  "BinaryGuard Innovations Inc."
+];
+
 const dropdownOptions = {
   request_type: ["New Card", "Replacement Card", "Temporary Card", "Cancel Card", "Access Change"],
   access_level: ["Standard Access", "Manager Access", "Restricted Area Access"],
@@ -71,30 +76,6 @@ function reference() {
   return `ACO-${new Date().getFullYear()}-${String(Math.floor(Math.random() * 900000 + 100000))}`;
 }
 
-function getDisplayNameFromEmail(email: string) {
-  const usernamePart = email.split("@")[0] || "Portal User";
-
-  return usernamePart
-    .replace(/[._-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .replace(/\b\w/g, character => character.toUpperCase()) || "Portal User";
-}
-
-function getOrgFromEmail(email: string) {
-  const domain = email.split("@")[1]?.toLowerCase();
-
-  if (domain === "binaryguard.ca") {
-    return "BinaryGuard Innovations Inc.";
-  }
-
-  if (domain === "gov.mb.ca") {
-    return "Government of Manitoba";
-  }
-
-  return tenant.name;
-}
-
 export default function App() {
   const [page, setPage] = useState<Page>("auth");
   const [statusText, setStatusText] = useState("Not verified");
@@ -107,13 +88,13 @@ export default function App() {
   const [otpPurpose, setOtpPurpose] = useState<"registration" | "login">("login");
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
-  const [user, setUser] = useState({ name: getDisplayNameFromEmail("john.smith@gov.mb.ca"), email: "john.smith@gov.mb.ca", org: getOrgFromEmail("john.smith@gov.mb.ca") });
+  const [user, setUser] = useState({ name: "John Smith", email: "john.smith@gov.mb.ca", org: tenant.name });
   const [username, setUsername] = useState("john.smith");
   const [selectedDomain, setSelectedDomain] = useState(tenant.approvedEmailDomain);
   const [registration, setRegistration] = useState({
     fullName: "",
     corporateEmail: "",
-    organization: tenant.name,
+    organization: "Manitoba Housing",
     department: "",
     requestedRole: "standard_user",
     reason: ""
@@ -194,26 +175,18 @@ export default function App() {
       .replace(/@.*/, "")
       .replace(/[^a-z0-9._-]/g, "");
 
-    const email = `${cleanUsername}${selectedDomain}`;
-
     setUsername(cleanUsername);
     setUser(current => ({
       ...current,
-      name: getDisplayNameFromEmail(email),
-      email,
-      org: getOrgFromEmail(email)
+      email: `${cleanUsername}${selectedDomain}`
     }));
   }
 
   function updateDomain(domain: string) {
-    const email = `${username.trim().toLowerCase()}${domain}`;
-
     setSelectedDomain(domain);
     setUser(current => ({
       ...current,
-      name: getDisplayNameFromEmail(email),
-      email,
-      org: getOrgFromEmail(email)
+      email: `${username.trim().toLowerCase()}${domain}`
     }));
   }
 
@@ -238,7 +211,7 @@ export default function App() {
       return;
     }
 
-    setUser(current => ({ ...current, name: getDisplayNameFromEmail(loginEmail), email: loginEmail, org: getOrgFromEmail(loginEmail) }));
+    setUser(current => ({ ...current, email: loginEmail }));
 
     try {
       setOtpLoading(true);
@@ -284,9 +257,9 @@ export default function App() {
       }
 
       setUser({
-        name: registration.fullName || getDisplayNameFromEmail(email),
+        name: registration.fullName || "Portal User",
         email,
-        org: getOrgFromEmail(email),
+        org: registration.organization || tenant.name,
       });
       setOtpCode("");
       setStatusText("OTP required");
@@ -468,7 +441,15 @@ export default function App() {
 
               <label>
                 Organization *
-                <input value={registration.organization} readOnly />
+                <select
+                  value={registration.organization}
+                  onChange={e => setRegistration({ ...registration, organization: e.target.value })}
+                  required
+                >
+                  {organizationOptions.map(organization => (
+                    <option key={organization} value={organization}>{organization}</option>
+                  ))}
+                </select>
               </label>
 
               <label>
@@ -621,7 +602,7 @@ export default function App() {
         </section>
 
         <section className={`page ${page === "services" ? "active" : ""}`}>
-          <div className="hero"><span className="hero-icon">⌘</span><div><p className="eyebrow">AUTHORIZED SERVICES</p><h2>Good morning, {user.name.split(" ")[0]}</h2><p>Select a service available to <span>{user.org}</span>.</p></div></div>
+          <div className="hero"><span className="hero-icon">⌘</span><div><p className="eyebrow">AUTHORIZED SERVICES</p><h2>Good morning, {user.name.split(" ")[0]}</h2><p>Select a service available to <span>{tenant.name}</span>.</p></div></div>
           <div className="service-grid"><article className="service-card featured"><div className="service-top"><span className="service-icon">▣</span><span className="approved">Enabled</span></div><h3>Access Card Ordering</h3><p>Request new, replacement, temporary, or updated access cards for your organization.</p><button className="primary" onClick={openService}>Open Access Card Ordering <span>→</span></button></article><article className="service-card muted"><div className="service-top"><span className="service-icon">◉</span><span className="soon">Coming soon</span></div><h3>Camera Ordering</h3><p>Order security camera equipment and supporting services.</p></article><article className="service-card muted"><div className="service-top"><span className="service-icon">◇</span><span className="soon">Coming soon</span></div><h3>Quote Requests</h3><p>Request a tailored quote from the BinaryGuard team.</p></article></div>
           <section className="client-dashboard"><div className="dashboard-heading"><div><p className="eyebrow">MY DASHBOARD</p><h2>Submitted requests</h2><p>Review, edit, modify, or delete your submitted access card requests.</p></div><button className="secondary" type="button">Refresh</button></div><div className="client-summary"><article><b>{summary.total}</b><span>Total submitted</span></article><article><b>{summary.active}</b><span>Active requests</span></article><article><b>{summary.completed}</b><span>Completed</span></article></div><div className="client-request-list">{orders.length === 0 ? <article className="empty-state"><h3>No submitted requests yet</h3><p>Use Access Card Ordering to create your first request. It will appear here after submission.</p></article> : <div className="table-wrap"><table><thead><tr><th>Reference</th><th>Request type</th><th>Cardholder</th><th>Site</th><th>Status</th><th>Actions</th></tr></thead><tbody>{orders.map(o => <tr key={o.id}><td>{o.reference}</td><td>{o.request_type}</td><td>{o.cardholder_name}</td><td>{o.site_name}</td><td><span className="pill">{o.status}</span></td><td className="row-actions"><button className="secondary small" onClick={() => toast(`${o.reference}: ${o.status}`)}>View</button><button className="secondary small" onClick={() => editOrder(o.id)}>Edit</button><button className="danger small" onClick={() => setOrders(current => current.filter(x => x.id !== o.id))}>Delete</button></td></tr>)}</tbody></table></div>}</div></section>
         </section>
@@ -637,7 +618,7 @@ export default function App() {
             <section className="form-section"><div className="section-title"><span>03</span><div><h3>Cardholder information</h3><p>Who is this access card for?</p></div></div><div className="form-grid"><label>Cardholder name *<input value={orderForm.cardholder_name} onChange={e => setOrderForm({ ...orderForm, cardholder_name: e.target.value })} required /></label><label>Cardholder email *<input type="email" value={orderForm.cardholder_email} onChange={e => setOrderForm({ ...orderForm, cardholder_email: e.target.value })} required /></label><label>Employee ID *<input value={orderForm.employee_id} onChange={e => setOrderForm({ ...orderForm, employee_id: e.target.value })} required /></label><label>Department *<input value={orderForm.department} onChange={e => setOrderForm({ ...orderForm, department: e.target.value })} required /></label></div></section>
             <section className="form-section"><div className="section-title"><span>04</span><div><h3>Site & access</h3><p>Tenant-specific options are loaded automatically</p></div></div><div className="form-grid"><label>Site *<select value={orderForm.site_name} onChange={e => setOrderForm({ ...orderForm, site_name: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.site.map(x => <option key={x}>{x}</option>)}</select></label><label>Building *<select value={orderForm.building_address} onChange={e => setOrderForm({ ...orderForm, building_address: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.building.map(x => <option key={x}>{x}</option>)}</select></label><label>Floor / Area<input value={orderForm.floor} onChange={e => setOrderForm({ ...orderForm, floor: e.target.value })} /></label><label>Access level *<select value={orderForm.access_level} onChange={e => setOrderForm({ ...orderForm, access_level: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.access_level.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
             <section className="form-section"><div className="section-title"><span>05</span><div><h3>Dates & notes</h3><p>Optional expiry date can be added for temporary cards</p></div></div><div className="form-grid"><label>Effective date *<input type="date" value={orderForm.effective_date} onChange={e => setOrderForm({ ...orderForm, effective_date: e.target.value })} required /></label><label>Expiry date <span className="optional">optional</span><input type="date" value={orderForm.expiry_date} onChange={e => setOrderForm({ ...orderForm, expiry_date: e.target.value })} /></label></div><label>Notes / remarks<textarea value={orderForm.notes} onChange={e => setOrderForm({ ...orderForm, notes: e.target.value })} /></label></section>
-            <div className="form-actions"><p><span>✓</span> Submission will be routed to {user.org} processing queue.</p><div className="form-action-buttons"><button className="secondary" type="button" onClick={() => showPage("services")}>Back to services</button><button className="primary" type="submit">{editingOrderId ? "Save changes" : "Submit access card order"} <span>→</span></button></div></div>
+            <div className="form-actions"><p><span>✓</span> Submission will be routed to {tenant.name} processing queue.</p><div className="form-action-buttons"><button className="secondary" type="button" onClick={() => showPage("services")}>Back to services</button><button className="primary" type="submit">{editingOrderId ? "Save changes" : "Submit access card order"} <span>→</span></button></div></div>
           </form>
         </section>
 
