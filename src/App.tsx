@@ -144,6 +144,15 @@ export default function App() {
   const steps = ["auth", "otp", "services", "order"];
   const activeStep = page === "checking" || page === "denied" ? "services" : page === "success" ? "order" : page;
   const activeStepIndex = Math.max(0, steps.indexOf(activeStep));
+
+  function isStepEnabled(index: number) {
+    if (page === "auth" || page === "register") return index === 0;
+    if (page === "otp") return index === 1;
+    if (page === "services" || page === "checking" || page === "denied") return index === 2;
+    if (page === "order" || page === "success") return index === 2 || index === 3;
+    return false;
+  }
+
   const summary = useMemo(() => ({
     total: orders.length,
     active: orders.filter(order => !["Completed", "Cancelled", "Rejected"].includes(order.status)).length,
@@ -240,11 +249,24 @@ export default function App() {
   function signOut() {
     setStatusText("Not verified");
     setStatusOk(false);
+    setToastMessage("");
     setOtpCode("");
+    setOtpPurpose("login");
     setOtpExpiresAt(null);
+    setOtpSecondsLeft(0);
+    setEditingOrderId(null);
+    setOrderForm(blankOrder);
+
     const matchedDomain = tenant.approvedEmailDomains.find(domain => user.email.endsWith(domain)) || tenant.approvedEmailDomain;
+    const cleanUsername = user.email.replace(matchedDomain, "") || "john.smith";
+
     setSelectedDomain(matchedDomain);
-    setUsername(user.email.replace(matchedDomain, ""));
+    setUsername(cleanUsername);
+    setUser({
+      name: getDisplayNameFromEmail(`${cleanUsername}${matchedDomain}`),
+      email: `${cleanUsername}${matchedDomain}`,
+      org: getOrgFromEmail(`${cleanUsername}${matchedDomain}`)
+    });
     showPage("auth");
   }
 
@@ -399,11 +421,22 @@ export default function App() {
         <div className="brand"><span className="brand-mark">BG</span><div><strong>BinaryGuard</strong><small>Secure Client Portal</small></div></div>
         <div className="secure-chip"><span></span> portal.binaryguard.ca</div>
         <nav className="journey" aria-label="Portal progress">
-          {[["auth","User Authentication","Login or registration request"],["otp","OTP Verification","One-time passcode"],["services","Service Authorization","Tenant & role access"],["order","Access Card Portal","Secure ordering"]].map(([key,label,helper], index) => (
-            <button key={key} className={`journey-step ${index === activeStepIndex ? "active" : index < activeStepIndex ? "done" : "locked"}`} onClick={() => index <= activeStepIndex && showPage(key as Page)}>
-              <i>{index < activeStepIndex ? "✓" : index + 1}</i><span><b>{label}</b><small>{helper}</small></span>
-            </button>
-          ))}
+          {[["auth","User Authentication","Login or registration request"],["otp","OTP Verification","One-time passcode"],["services","Service Authorization","Tenant & role access"],["order","Access Card Portal","Secure ordering"]].map(([key,label,helper], index) => {
+            const enabled = isStepEnabled(index);
+            const stateClass = index === activeStepIndex ? "active" : index < activeStepIndex ? "done" : "locked";
+
+            return (
+              <button
+                key={key}
+                className={`journey-step ${stateClass} ${!enabled ? "disabled-step" : ""}`}
+                onClick={() => enabled && showPage(key as Page)}
+                disabled={!enabled}
+                aria-disabled={!enabled}
+              >
+                <i>{index < activeStepIndex ? "✓" : index + 1}</i><span><b>{label}</b><small>{helper}</small></span>
+              </button>
+            );
+          })}
         </nav>
         <div className="security-card"><span className="shield">✓</span><div><strong>Protected workflow</strong><p>Each layer is verified before the next becomes available.</p></div></div>
       </aside>
