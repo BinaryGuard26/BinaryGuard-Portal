@@ -126,6 +126,7 @@ export default function App() {
   const [otpCode, setOtpCode] = useState("");
   const [otpPurpose, setOtpPurpose] = useState<"registration" | "login">("login");
   const otpInputRef = useRef<HTMLInputElement | null>(null);
+  const otpAutoSubmitRef = useRef("");
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState({ name: getDisplayNameFromEmail("john.smith@gov.mb.ca"), email: "john.smith@gov.mb.ca", org: getOrgFromEmail("john.smith@gov.mb.ca") });
@@ -212,6 +213,27 @@ export default function App() {
       window.setTimeout(() => otpInputRef.current?.focus(), 150);
     }
   }, [page]);
+
+  useEffect(() => {
+    if (
+      page !== "otp" ||
+      otpCode.length !== 6 ||
+      otpLoading ||
+      otpSecondsLeft <= 0 ||
+      otpAutoSubmitRef.current === otpCode
+    ) {
+      return;
+    }
+
+    otpAutoSubmitRef.current = otpCode;
+
+    const submitTimer = window.setTimeout(() => {
+      const form = document.getElementById("otp-verification-form") as HTMLFormElement | null;
+      form?.requestSubmit();
+    }, 0);
+
+    return () => window.clearTimeout(submitTimer);
+  }, [otpCode, page, otpLoading, otpSecondsLeft]);
 
   useEffect(() => {
     if (otpExpiresAt === null) {
@@ -391,12 +413,19 @@ export default function App() {
   async function verify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
+    if (otpCode.length !== 6 || otpLoading || otpSecondsLeft <= 0) {
+      return;
+    }
+
     try {
       setOtpLoading(true);
       const result = await verifyOtp(user.email, otpCode, otpPurpose);
 
       if (!result.ok) {
+        otpAutoSubmitRef.current = "";
+        setOtpCode("");
         toast(result.message || "Invalid OTP code.");
+        window.setTimeout(() => otpInputRef.current?.focus(), 100);
         return;
       }
 
@@ -405,7 +434,10 @@ export default function App() {
       toast("OTP verified successfully.");
       showPage("services");
     } catch (error) {
+      otpAutoSubmitRef.current = "";
+      setOtpCode("");
       toast(error instanceof Error ? error.message : "Unable to verify OTP.");
+      window.setTimeout(() => otpInputRef.current?.focus(), 100);
     } finally {
       setOtpLoading(false);
     }
@@ -687,15 +719,25 @@ export default function App() {
 
         <section className={`page ${page === "otp" ? "active" : ""}`}>
           <div className="hero"><span className="hero-icon">••</span><div><p className="eyebrow">LAYER 2</p><h2>Verify your identity</h2><p>We sent a six-digit code to <b>{user.email}</b>. It expires in 10 minutes.</p></div></div>
-          <form className="card compact" onSubmit={verify}>
+          <form id="otp-verification-form" className="card compact" onSubmit={verify}>
             <label>
               Verification code
               <input
                 ref={otpInputRef}
                 value={otpCode}
-                onChange={e => setOtpCode(e.target.value.replace(/\D/g, ""))}
+                onChange={event => {
+                  const value = event.target.value.replace(/\D/g, "").slice(0, 6);
+                  setOtpCode(value);
+
+                  if (value.length < 6) {
+                    otpAutoSubmitRef.current = "";
+                  }
+                }}
                 inputMode="numeric"
+                autoComplete="one-time-code"
                 maxLength={6}
+                disabled={otpLoading}
+                autoFocus
                 required
               />
             </label>
