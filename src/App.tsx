@@ -42,6 +42,33 @@ const dropdownOptions = {
   building: ["Government Administration Building", "Norquay Building", "Woodsworth Building"]
 };
 
+const portalServices = [
+  {
+    id: "access-card",
+    label: "Access Card Portal",
+    helper: "Secure ordering",
+    enabled: true
+  },
+  {
+    id: "camera-ordering",
+    label: "Camera Ordering",
+    helper: "Coming soon",
+    enabled: false
+  },
+  {
+    id: "quote-request",
+    label: "Quote Request",
+    helper: "Coming soon",
+    enabled: false
+  },
+  {
+    id: "service-request",
+    label: "Service Request",
+    helper: "Not currently available",
+    enabled: false
+  }
+];
+
 const pageTitles: Record<Page, [string, string]> = {
   auth: ["SECURE ACCESS", "Welcome to BinaryGuard"],
   register: ["USER REGISTRATION", "User Registration"],
@@ -117,6 +144,7 @@ function getWinnipegGreeting() {
 
 export default function App() {
   const [page, setPage] = useState<Page>("auth");
+  const [servicesExpanded, setServicesExpanded] = useState(true);
   const [statusText, setStatusText] = useState("Not verified");
   const [statusOk, setStatusOk] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
@@ -498,22 +526,121 @@ export default function App() {
         <div className="brand"><span className="brand-mark">BG</span><div><strong>BinaryGuard</strong><small>Secure Client Portal</small></div></div>
         <div className="secure-chip"><span></span> portal.binaryguard.ca</div>
         <nav className="journey" aria-label="Portal progress">
-          {[["auth","User Authentication","Login or registration request"],["otp","OTP Verification","One-time passcode"],["services","Service Authorization","Tenant & role access"],["order","Access Card Portal","Secure ordering"]].map(([key,label,helper], index) => {
-            const enabled = isStepEnabled(index);
-            const stateClass = index === activeStepIndex ? "active" : index < activeStepIndex ? "done" : "locked";
+          <button
+            className={`journey-step ${
+              activeStepIndex === 0
+                ? "active"
+                : activeStepIndex > 0
+                ? "done"
+                : "locked"
+            } ${!isStepEnabled(0) ? "disabled-step" : ""}`}
+            onClick={() => isStepEnabled(0) && showPage("auth")}
+            disabled={!isStepEnabled(0)}
+            aria-disabled={!isStepEnabled(0)}
+          >
+            <i>{activeStepIndex > 0 ? "✓" : "1"}</i>
+            <span>
+              <b>User Authentication</b>
+              <small>Login or registration request</small>
+            </span>
+          </button>
 
-            return (
-              <button
-                key={key}
-                className={`journey-step ${stateClass} ${!enabled ? "disabled-step" : ""}`}
-                onClick={() => enabled && showPage(key as Page)}
-                disabled={!enabled}
-                aria-disabled={!enabled}
-              >
-                <i>{index < activeStepIndex ? "✓" : index + 1}</i><span><b>{label}</b><small>{helper}</small></span>
-              </button>
-            );
-          })}
+          <button
+            className={`journey-step ${
+              activeStepIndex === 1
+                ? "active"
+                : activeStepIndex > 1
+                ? "done"
+                : "locked"
+            } ${!isStepEnabled(1) ? "disabled-step" : ""}`}
+            onClick={() => isStepEnabled(1) && showPage("otp")}
+            disabled={!isStepEnabled(1)}
+            aria-disabled={!isStepEnabled(1)}
+          >
+            <i>{activeStepIndex > 1 ? "✓" : "2"}</i>
+            <span>
+              <b>OTP Verification</b>
+              <small>One-time passcode</small>
+            </span>
+          </button>
+
+          <div className="journey-service-group">
+            <button
+              type="button"
+              className={`journey-step service-toggle ${
+                activeStepIndex === 2
+                  ? "active"
+                  : activeStepIndex > 2
+                  ? "done"
+                  : "locked"
+              } ${!isStepEnabled(2) ? "disabled-step" : ""}`}
+              onClick={() => {
+                if (isStepEnabled(2)) {
+                  setServicesExpanded(current => !current);
+                }
+              }}
+              disabled={!isStepEnabled(2)}
+              aria-disabled={!isStepEnabled(2)}
+              aria-expanded={servicesExpanded}
+            >
+              <i>{activeStepIndex > 2 ? "✓" : "3"}</i>
+              <span>
+                <b>Service Authorization</b>
+                <small>Tenant & role access</small>
+              </span>
+              <span className={`service-chevron ${servicesExpanded ? "open" : ""}`}>
+                ▾
+              </span>
+            </button>
+
+            {servicesExpanded && isStepEnabled(2) && (
+              <div className="service-submenu">
+                {portalServices.map(service => {
+                  const isActive =
+                    service.id === "access-card" &&
+                    (page === "order" || page === "success");
+
+                  return (
+                    <button
+                      key={service.id}
+                      type="button"
+                      className={`service-submenu-item ${
+                        isActive ? "active" : ""
+                      } ${!service.enabled ? "disabled" : ""}`}
+                      onClick={() => {
+                        if (!service.enabled) {
+                          toast(`${service.label} is not currently available.`);
+                          return;
+                        }
+
+                        if (service.id === "access-card") {
+                          openService();
+                        }
+                      }}
+                      aria-disabled={!service.enabled}
+                    >
+                      <span className="service-submenu-icon">
+                        {service.enabled ? "▣" : "○"}
+                      </span>
+
+                      <span>
+                        <b>{service.label}</b>
+                        <small>{service.helper}</small>
+                      </span>
+
+                      <span
+                        className={`service-status ${
+                          service.enabled ? "available" : "unavailable"
+                        }`}
+                      >
+                        {service.enabled ? "Available" : "Coming soon"}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
         </nav>
         <div className="security-card"><span className="shield">✓</span><div><strong>Protected workflow</strong><p>Each layer is verified before the next becomes available.</p></div></div>
       </aside>
