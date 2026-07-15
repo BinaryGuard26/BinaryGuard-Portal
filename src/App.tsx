@@ -128,6 +128,17 @@ function getOrgFromEmail(email: string) {
   return "Manitoba Housing";
 }
 
+function extractDomainFromEmail(email: string) {
+  const normalizedEmail = email.trim().toLowerCase();
+  const parts = normalizedEmail.split("@");
+
+  if (parts.length !== 2 || !parts[0] || !parts[1]) {
+    return "";
+  }
+
+  return parts[1];
+}
+
 function getWinnipegGreeting() {
   const hourText = new Intl.DateTimeFormat("en-CA", {
     timeZone: "America/Winnipeg",
@@ -159,8 +170,7 @@ export default function App() {
   const [editingOrderId, setEditingOrderId] = useState<string | null>(null);
   const [orders, setOrders] = useState<Order[]>([]);
   const [user, setUser] = useState({ name: getDisplayNameFromEmail("john.smith@gov.mb.ca"), email: "john.smith@gov.mb.ca", org: getOrgFromEmail("john.smith@gov.mb.ca") });
-  const [username, setUsername] = useState("john.smith");
-  const [selectedDomain, setSelectedDomain] = useState(tenant.approvedEmailDomain);
+  const [corporateEmail, setCorporateEmail] = useState("azeem.akram@binaryguard.ca");
   const [domainChecking, setDomainChecking] = useState(false);
   const [domainValid, setDomainValid] = useState(false);
   const [domainChecked, setDomainChecked] = useState(false);
@@ -206,44 +216,57 @@ export default function App() {
 
 
   useEffect(() => {
-    const cleanUsername = username.trim();
+    const normalizedEmail = corporateEmail.trim().toLowerCase();
+    const domain = extractDomainFromEmail(normalizedEmail);
 
     setDomainChecked(false);
     setDomainValid(false);
     setDomainError("");
 
-    if (!cleanUsername || !selectedDomain) {
+    if (!normalizedEmail || !domain) {
       setDomainChecking(false);
       return;
     }
 
     let cancelled = false;
+
     const validationTimer = window.setTimeout(async () => {
       setDomainChecking(true);
+
       try {
-        const result = await validateApprovedDomain(selectedDomain);
+        const result = await validateApprovedDomain(domain);
+
         if (cancelled) return;
+
         setDomainChecked(true);
         setDomainValid(result.valid);
+
         if (!result.valid) {
-          setDomainError("Your domain is not registered. Please submit a request to the administrator.");
+          setDomainError(
+            "Your domain is not registered. Please submit a request to admin."
+          );
         }
       } catch (error) {
         if (cancelled) return;
+
         console.error("Domain validation failed:", error);
         setDomainChecked(true);
         setDomainValid(false);
-        setDomainError("Unable to validate your domain. Please try again.");
+        setDomainError(
+          "Unable to validate your domain. Please try again."
+        );
       } finally {
-        if (!cancelled) setDomainChecking(false);
+        if (!cancelled) {
+          setDomainChecking(false);
+        }
       }
-    }, 350);
+    }, 400);
 
     return () => {
       cancelled = true;
       window.clearTimeout(validationTimer);
     };
-  }, [username, selectedDomain]);
+  }, [corporateEmail]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -262,10 +285,7 @@ export default function App() {
       return;
     }
 
-    const cleanUsername = decodedEmail.replace(matchedDomain, "");
-
-    setSelectedDomain(matchedDomain);
-    setUsername(cleanUsername);
+    setCorporateEmail(decodedEmail);
     setUser({
       name: getDisplayNameFromEmail(decodedEmail),
       email: decodedEmail,
@@ -356,34 +376,6 @@ export default function App() {
   }
 
 
-  function updateUsername(value: string) {
-    const cleanUsername = value
-      .toLowerCase()
-      .replace(/@.*/, "")
-      .replace(/[^a-z0-9._-]/g, "");
-
-    const email = `${cleanUsername}${selectedDomain}`;
-
-    setUsername(cleanUsername);
-    setUser(current => ({
-      ...current,
-      name: getDisplayNameFromEmail(email),
-      email,
-      org: getOrgFromEmail(email)
-    }));
-  }
-
-  function updateDomain(domain: string) {
-    const email = `${username.trim().toLowerCase()}${domain}`;
-
-    setSelectedDomain(domain);
-    setUser(current => ({
-      ...current,
-      name: getDisplayNameFromEmail(email),
-      email,
-      org: getOrgFromEmail(email)
-    }));
-  }
 
   function signOut() {
     setStatusText("Not verified");
@@ -400,15 +392,11 @@ export default function App() {
     setEditingOrderId(null);
     setOrderForm(blankOrder);
 
-    const matchedDomain = tenant.approvedEmailDomains.find(domain => user.email.endsWith(domain)) || tenant.approvedEmailDomain;
-    const cleanUsername = user.email.replace(matchedDomain, "") || "john.smith";
-
-    setSelectedDomain(matchedDomain);
-    setUsername(cleanUsername);
+    setCorporateEmail("");
     setUser({
-      name: getDisplayNameFromEmail(`${cleanUsername}${matchedDomain}`),
-      email: `${cleanUsername}${matchedDomain}`,
-      org: getOrgFromEmail(`${cleanUsername}${matchedDomain}`)
+      name: "Portal User",
+      email: "",
+      org: ""
     });
     window.history.replaceState({}, document.title, window.location.pathname);
     showPage("auth");
@@ -417,35 +405,41 @@ export default function App() {
   async function login(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const loginEmail = `${username.trim().toLowerCase()}${selectedDomain}`;
+    const loginEmail = corporateEmail.trim().toLowerCase();
+    const domain = extractDomainFromEmail(loginEmail);
 
-    if (!username.trim()) {
-      toast("Please enter your corporate username.");
+    if (!loginEmail || !domain) {
+      toast("Please enter a valid corporate email address.");
       return;
     }
 
     try {
       setDomainChecking(true);
-      const domainResult = await validateApprovedDomain(selectedDomain);
+
+      const domainResult = await validateApprovedDomain(domain);
+
       setDomainChecked(true);
       setDomainValid(domainResult.valid);
 
       if (!domainResult.valid) {
-        setDomainError("Your domain is not registered. Please submit a request to the administrator.");
+        setDomainError(
+          "Your domain is not registered. Please submit a request to admin."
+        );
         toast("This corporate domain is not registered.");
         return;
       }
 
       setDomainError("");
-      setUser(current => ({
-        ...current,
+
+      setUser({
         name: getDisplayNameFromEmail(loginEmail),
         email: loginEmail,
         org: getOrgFromEmail(loginEmail)
-      }));
+      });
 
       setOtpLoading(true);
       setOtpPurpose("login");
+
       const result = await requestOtp(loginEmail, "login");
 
       if (!result.ok) {
@@ -724,26 +718,23 @@ export default function App() {
           <form className="card compact" onSubmit={login}>
             <label>
               Corporate email address
-              <div className="email-input-group">
-                <input
-                  type="text"
-                  value={username}
-                  placeholder="john.smith"
-                  onChange={e => updateUsername(e.target.value)}
-                  autoComplete="username"
-                  required
-                />
-                <select
-                  className="email-domain-select"
-                  value={selectedDomain}
-                  onChange={e => updateDomain(e.target.value)}
-                  aria-label="Corporate email domain"
-                >
-                  {tenant.approvedEmailDomains.map(domain => (
-                    <option key={domain} value={domain}>{domain}</option>
-                  ))}
-                </select>
-              </div>
+              <input
+                type="email"
+                value={corporateEmail}
+                placeholder="user@company.ca"
+                onChange={event => {
+                  setCorporateEmail(event.target.value.trimStart().toLowerCase());
+                }}
+                autoComplete="email"
+                className={`corporate-email-input ${
+                  domainChecked
+                    ? domainValid
+                      ? "domain-approved"
+                      : "domain-rejected"
+                    : ""
+                }`}
+                required
+              />
 
               <div
                 className={`domain-validation ${
@@ -765,7 +756,7 @@ export default function App() {
                 )}
                 {!domainChecking && domainChecked && !domainValid && (
                   <p className="domain-error">
-                    {domainError || "Your domain is not registered."} Please submit a request to the administrator via{" "}
+                    Your domain is not registered. Please submit a request to admin via{" "}
                     <a className="domain-contact-link" href="https://binaryguard.ca/contact" target="_blank" rel="noreferrer">Contact Us</a>.
                   </p>
                 )}
@@ -774,7 +765,7 @@ export default function App() {
             <button
               className="primary"
               type="submit"
-              disabled={otpLoading || domainChecking || !domainChecked || !domainValid || !username.trim()}
+              disabled={otpLoading || domainChecking || !domainChecked || !domainValid || !corporateEmail.trim()}
             >
               {domainChecking ? "Checking domain..." : otpLoading ? "Sending OTP..." : "Continue securely"} <span>→</span>
             </button>
