@@ -74,7 +74,7 @@ const pageTitles: Record<Page, [string, string]> = {
   auth: ["SECURE ACCESS", "Welcome to BinaryGuard"],
   register: ["USER REGISTRATION", "User Registration"],
   otp: ["IDENTITY VERIFICATION", "Enter your security code"],
-  services: ["CLIENT PORTAL", "Authorized services"],
+  services: ["CLIENT PORTAL", "Authorized Services"],
   checking: ["SERVICE AUTHORIZATION", "Checking access"],
   denied: ["SERVICE AUTHORIZATION", "Access denied"],
   order: ["SECURE ORDERING", "Access Card Ordering"],
