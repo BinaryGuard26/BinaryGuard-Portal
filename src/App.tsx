@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import "./styles/portal.css";
 import { requestOtp, verifyOtp } from "./services/api";
+import { validateApprovedDomain } from "./services/domainService";
 
 type Page = "auth" | "register" | "otp" | "services" | "checking" | "denied" | "order" | "success";
 
@@ -160,6 +161,10 @@ export default function App() {
   const [user, setUser] = useState({ name: getDisplayNameFromEmail("john.smith@gov.mb.ca"), email: "john.smith@gov.mb.ca", org: getOrgFromEmail("john.smith@gov.mb.ca") });
   const [username, setUsername] = useState("john.smith");
   const [selectedDomain, setSelectedDomain] = useState(tenant.approvedEmailDomain);
+  const [domainChecking, setDomainChecking] = useState(false);
+  const [domainValid, setDomainValid] = useState(false);
+  const [domainChecked, setDomainChecked] = useState(false);
+  const [domainError, setDomainError] = useState("");
   const [registration, setRegistration] = useState({
     fullName: "",
     corporateEmail: "",
@@ -199,6 +204,46 @@ export default function App() {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
+
+  useEffect(() => {
+    const cleanUsername = username.trim();
+
+    setDomainChecked(false);
+    setDomainValid(false);
+    setDomainError("");
+
+    if (!cleanUsername || !selectedDomain) {
+      setDomainChecking(false);
+      return;
+    }
+
+    let cancelled = false;
+    const validationTimer = window.setTimeout(async () => {
+      setDomainChecking(true);
+      try {
+        const result = await validateApprovedDomain(selectedDomain);
+        if (cancelled) return;
+        setDomainChecked(true);
+        setDomainValid(result.valid);
+        if (!result.valid) {
+          setDomainError("Your domain is not registered. Please submit a request to the administrator.");
+        }
+      } catch (error) {
+        if (cancelled) return;
+        console.error("Domain validation failed:", error);
+        setDomainChecked(true);
+        setDomainValid(false);
+        setDomainError("Unable to validate your domain. Please try again.");
+      } finally {
+        if (!cancelled) setDomainChecking(false);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(validationTimer);
+    };
+  }, [username, selectedDomain]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -348,6 +393,10 @@ export default function App() {
     setOtpPurpose("login");
     setOtpExpiresAt(null);
     setOtpSecondsLeft(0);
+    setDomainChecking(false);
+    setDomainValid(false);
+    setDomainChecked(false);
+    setDomainError("");
     setEditingOrderId(null);
     setOrderForm(blankOrder);
 
@@ -375,9 +424,26 @@ export default function App() {
       return;
     }
 
-    setUser(current => ({ ...current, name: getDisplayNameFromEmail(loginEmail), email: loginEmail, org: getOrgFromEmail(loginEmail) }));
-
     try {
+      setDomainChecking(true);
+      const domainResult = await validateApprovedDomain(selectedDomain);
+      setDomainChecked(true);
+      setDomainValid(domainResult.valid);
+
+      if (!domainResult.valid) {
+        setDomainError("Your domain is not registered. Please submit a request to the administrator.");
+        toast("This corporate domain is not registered.");
+        return;
+      }
+
+      setDomainError("");
+      setUser(current => ({
+        ...current,
+        name: getDisplayNameFromEmail(loginEmail),
+        email: loginEmail,
+        org: getOrgFromEmail(loginEmail)
+      }));
+
       setOtpLoading(true);
       setOtpPurpose("login");
       const result = await requestOtp(loginEmail, "login");
@@ -394,8 +460,9 @@ export default function App() {
       toast("A six-digit OTP has been sent to your email.");
       showPage("otp");
     } catch (error) {
-      toast(error instanceof Error ? error.message : "Unable to send OTP.");
+      toast(error instanceof Error ? error.message : "Unable to continue.");
     } finally {
+      setDomainChecking(false);
       setOtpLoading(false);
     }
   }
@@ -677,8 +744,40 @@ export default function App() {
                   ))}
                 </select>
               </div>
+
+              <div
+                className={`domain-validation ${
+                  domainChecking
+                    ? "checking"
+                    : domainValid
+                      ? "valid"
+                      : domainChecked
+                        ? "invalid"
+                        : ""
+                }`}
+                aria-live="polite"
+              >
+                {domainChecking && (
+                  <p><span className="domain-spinner" />Checking corporate domain...</p>
+                )}
+                {!domainChecking && domainChecked && domainValid && (
+                  <p className="domain-success">✓ This corporate domain is approved.</p>
+                )}
+                {!domainChecking && domainChecked && !domainValid && (
+                  <p className="domain-error">
+                    {domainError || "Your domain is not registered."} Please submit a request to the administrator via{" "}
+                    <a className="domain-contact-link" href="https://binaryguard.ca/contact" target="_blank" rel="noreferrer">Contact Us</a>.
+                  </p>
+                )}
+              </div>
             </label>
-            <button className="primary" type="submit" disabled={otpLoading}>{otpLoading ? "Sending OTP..." : "Continue securely"} <span>→</span></button>
+            <button
+              className="primary"
+              type="submit"
+              disabled={otpLoading || domainChecking || !domainChecked || !domainValid || !username.trim()}
+            >
+              {domainChecking ? "Checking domain..." : otpLoading ? "Sending OTP..." : "Continue securely"} <span>→</span>
+            </button>
             <p className="form-note">Users cannot continue until a registration request is approved in Admin CPanel.</p>
             <div className="split-actions">
               <button
