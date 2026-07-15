@@ -223,7 +223,14 @@ export default function App() {
     setDomainValid(false);
     setDomainError("");
 
-    if (!normalizedEmail || !domain) {
+    const emailLooksComplete =
+      normalizedEmail.includes("@") &&
+      domain.length >= 4 &&
+      domain.includes(".") &&
+      !domain.startsWith(".") &&
+      !domain.endsWith(".");
+
+    if (!emailLooksComplete) {
       setDomainChecking(false);
       return;
     }
@@ -260,7 +267,7 @@ export default function App() {
           setDomainChecking(false);
         }
       }
-    }, 400);
+    }, 700);
 
     return () => {
       cancelled = true;
