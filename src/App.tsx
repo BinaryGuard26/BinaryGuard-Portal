@@ -774,7 +774,7 @@ export default function App() {
               type="submit"
               disabled={otpLoading || domainChecking || !domainChecked || !domainValid || !corporateEmail.trim()}
             >
-              {domainChecking ? "Checking domain..." : otpLoading ? "Sending OTP..." : "Continue securely"} <span>→</span>
+              {domainChecking ? "Checking domain..." : otpLoading ? "Sending OTP..." : "Continue"} <span>→</span>
             </button>
             <p className="form-note">Users cannot continue until a registration request is approved in Admin CPanel.</p>
             <div className="split-actions">
