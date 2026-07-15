@@ -721,7 +721,7 @@ export default function App() {
         </header>
 
         <section className={`page ${page === "auth" ? "active" : ""}`}>
-          <div className="hero"><span className="hero-icon">→</span><div><p className="eyebrow">LAYER 1</p><h2>Corporate access login</h2><p>Use your approved organization email to enter the secure client portal.</p></div></div>
+          <div className="hero"><span className="hero-icon">→</span><div><p className="eyebrow">LAYER 1</p><h2>User login</h2><p>Use your approved organization email to enter the secure client portal.</p></div></div>
           <form className="card compact" onSubmit={login}>
             <label>
               Corporate email address
