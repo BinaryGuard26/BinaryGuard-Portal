@@ -906,3 +906,29 @@ tr:last-child td{border-bottom:0}
     grid-template-rows: auto;
   }
 }
+/* Delivery information layout */
+.delivery-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 17px;
+  align-items: start;
+}
+
+.delivery-address-field {
+  grid-column: 1 / -1;
+}
+
+.delivery-address-field textarea {
+  min-height: 130px;
+  resize: vertical;
+}
+
+@media (max-width: 900px) {
+  .delivery-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .delivery-address-field {
+    grid-column: auto;
+  }
+}
