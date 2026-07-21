@@ -1048,7 +1048,62 @@ export default function App() {
             <section className="form-section"><div className="section-title"><span>04</span><div><h3>Site information</h3><p>Identify the cardholder location and destination</p></div></div><div className="form-grid"><label>Site name *<input value={orderForm.site_name} onChange={e => setOrderForm({ ...orderForm, site_name: e.target.value })} required /></label><label>Building *<input value={orderForm.building_address} onChange={e => setOrderForm({ ...orderForm, building_address: e.target.value })} required /></label><label>Floor <span className="optional">optional</span><input value={orderForm.floor} onChange={e => setOrderForm({ ...orderForm, floor: e.target.value })} /></label><label>Office number <span className="optional">optional</span><input value={orderForm.office_number} onChange={e => setOrderForm({ ...orderForm, office_number: e.target.value })} /></label></div></section>
             <section className="form-section"><div className="section-title"><span>05</span><div><h3>Card information</h3><p>Specify the card type, quantity, access level, and request reason</p></div></div><div className="form-grid"><label>Card type *<input type="text" value={orderForm.card_type} onChange={e => setOrderForm({ ...orderForm, card_type: e.target.value })} placeholder="Enter card type" required /></label><label>Quantity *<input type="number" min="1" max="10000" value={orderForm.quantity} onChange={e => setOrderForm({ ...orderForm, quantity: Number(e.target.value) })} required /></label><label>Access level *<select value={orderForm.access_level} onChange={e => setOrderForm({ ...orderForm, access_level: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.access_level.map(x => <option key={x}>{x}</option>)}</select></label><label>New / replacement reason<input value={orderForm.replacement_reason} onChange={e => setOrderForm({ ...orderForm, replacement_reason: e.target.value })} /></label></div></section>
             <section className="form-section"><div className="section-title"><span>06</span><div><h3>Purchase information</h3><p>Enter the purchase order number issued by your organization</p></div></div><div className="form-grid"><label>PO Number *<input value={orderForm.po_number} onChange={e => setOrderForm({ ...orderForm, po_number: e.target.value })} placeholder="Enter the purchase order number issued by your organization" required /></label></div></section>
-            <section className="form-section"><div className="section-title"><span>07</span><div><h3>Delivery information</h3><p>Enter the delivery address and receiving contact information</p></div></div><div className="form-grid"><label>Delivery address *<textarea value={orderForm.delivery_address} onChange={e => setOrderForm({ ...orderForm, delivery_address: e.target.value })} required /></label><label>Receiving person *<input value={orderForm.receiving_person} onChange={e => setOrderForm({ ...orderForm, receiving_person: e.target.value })} required /></label><label>Phone number *<input type="tel" value={orderForm.delivery_phone} onChange={e => setOrderForm({ ...orderForm, delivery_phone: e.target.value })} required /></label></div></section>
+            <section className="form-section">
+              <div className="section-title">
+                <span>07</span>
+                <div>
+                  <h3>Delivery information</h3>
+                  <p>Enter the delivery address and receiving contact information</p>
+                </div>
+              </div>
+
+              <div className="delivery-grid">
+                <label className="delivery-address-field">
+                  Delivery address *
+                  <textarea
+                    value={orderForm.delivery_address}
+                    onChange={e =>
+                      setOrderForm({
+                        ...orderForm,
+                        delivery_address: e.target.value
+                      })
+                    }
+                    required
+                  />
+                </label>
+
+                <div className="delivery-contact-fields">
+                  <label>
+                    Receiving person *
+                    <input
+                      value={orderForm.receiving_person}
+                      onChange={e =>
+                        setOrderForm({
+                          ...orderForm,
+                          receiving_person: e.target.value
+                        })
+                      }
+                      required
+                    />
+                  </label>
+
+                  <label>
+                    Phone number *
+                    <input
+                      type="tel"
+                      value={orderForm.delivery_phone}
+                      onChange={e =>
+                        setOrderForm({
+                          ...orderForm,
+                          delivery_phone: e.target.value
+                        })
+                      }
+                      required
+                    />
+                  </label>
+                </div>
+              </div>
+            </section>
             <section className="form-section"><div className="section-title"><span>08</span><div><h3>Additional notes</h3><p>Add any special instructions or supporting context</p></div></div><label>Notes / remarks<textarea value={orderForm.notes} onChange={e => setOrderForm({ ...orderForm, notes: e.target.value })} placeholder="Example: Please activate after July 15." /></label></section>
             <section className="form-section"><div className="section-title"><span>09</span><div><h3>Order review</h3><p>Review the order summary before submitting</p></div></div><div className="identity-grid"><div><small>Requester</small><strong>{user.name}</strong></div><div><small>Verified email</small><strong>{user.email}</strong></div><div><small>Cardholder</small><strong>{orderForm.cardholder_name || "Not entered"}</strong></div><div><small>Site</small><strong>{orderForm.site_name || "Not entered"}</strong></div><div><small>PO Number</small><strong>{orderForm.po_number || "Not entered"}</strong></div><div><small>Quantity</small><strong>{orderForm.quantity}</strong></div><div><small>Delivery address</small><strong>{orderForm.delivery_address || "Not entered"}</strong></div><div><small>Notes</small><strong>{orderForm.notes || "No additional notes"}</strong></div></div><label className="check-row"><input type="checkbox" checked={reviewConfirmed} onChange={e => setReviewConfirmed(e.target.checked)} />I have reviewed the order information and confirm that the details are correct.</label></section>
             <div className="form-actions"><p><span>✓</span> The order will be assigned an Order ID and submitted with status Pending Review.</p><div className="form-action-buttons"><button className="secondary" type="button" onClick={() => showPage("services")}>Back to services</button><button className="primary" type="submit" disabled={!reviewConfirmed}>{editingOrderId ? "Save changes" : "Submit access card order"} <span>→</span></button></div></div>
