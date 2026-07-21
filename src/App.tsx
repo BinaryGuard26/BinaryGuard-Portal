@@ -20,18 +20,14 @@ type Order = {
   building_address: string;
   floor: string;
   office_number: string;
-  department_location: string;
   card_type: string;
   quantity: number;
   access_level: string;
-  card_format: string;
   replacement_reason: string;
   po_number: string;
-  approved_by: string;
   delivery_address: string;
   receiving_person: string;
   delivery_phone: string;
-  delivery_method: string;
   notes: string;
   status: string;
 };
@@ -51,10 +47,7 @@ const organizationOptions = [
 
 const dropdownOptions = {
   request_type: ["New Card", "Replacement Card", "Cancel Card"],
-  access_level: ["Standard Access", "Manager Access", "Restricted Area Access"],
-  card_type: ["iCLASS SEOS Clamshell", "iCLASS SEOS Keyfob", "Other"],
-  card_format: ["H10301", "H10304", "H10306", "Corporate 1000", "Other"],
-  delivery_method: ["Internal Mail", "Courier", "Pickup", "Urgent Pickup"]
+  access_level: ["Standard Access", "Manager Access", "Restricted Area Access"]
 };
 
 const portalServices = [
@@ -107,18 +100,14 @@ const blankOrder = {
   building_address: "",
   floor: "",
   office_number: "",
-  department_location: "",
   card_type: "",
   quantity: 1,
   access_level: "",
-  card_format: "",
   replacement_reason: "",
   po_number: "",
-  approved_by: "",
   delivery_address: "",
   receiving_person: "",
   delivery_phone: "",
-  delivery_method: "",
   notes: ""
 };
 
@@ -622,18 +611,14 @@ export default function App() {
       building_address: found.building_address,
       floor: found.floor,
       office_number: found.office_number,
-      department_location: found.department_location,
       card_type: found.card_type,
       quantity: found.quantity,
       access_level: found.access_level,
-      card_format: found.card_format,
       replacement_reason: found.replacement_reason,
       po_number: found.po_number,
-      approved_by: found.approved_by,
       delivery_address: found.delivery_address,
       receiving_person: found.receiving_person,
       delivery_phone: found.delivery_phone,
-      delivery_method: found.delivery_method,
       notes: found.notes
     });
     setReviewConfirmed(false);
@@ -1059,11 +1044,11 @@ export default function App() {
           <form onSubmit={submitOrder}>
             <section className="form-section"><div className="section-title"><span>01</span><div><h3>Requester information</h3><p>Automatically populated after OTP authentication</p></div><b className="readonly-pill">Read only</b></div><div className="identity-grid"><div><small>Verified corporate email</small><strong>{user.email}</strong></div><div><small>Organization</small><strong>{user.org}</strong></div><div><small>Request submitted by</small><strong>{user.name}</strong></div><div><small>Submission date</small><strong>{new Date().toLocaleDateString("en-CA")}</strong></div><div><small>Order ID</small><strong>{editingOrderId ? orders.find(order => order.id === editingOrderId)?.reference : "Generated after submission"}</strong></div></div></section>
             <section className="form-section"><div className="section-title"><span>02</span><div><h3>Request type</h3><p>Select the required access card action</p></div></div><div className="form-grid"><label>Request type *<select value={orderForm.request_type} onChange={e => setOrderForm({ ...orderForm, request_type: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.request_type.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
-            <section className="form-section"><div className="section-title"><span>03</span><div><h3>Cardholder information</h3><p>Information about the person who will receive or use the card</p></div></div><div className="form-grid"><label>Cardholder full name *<input value={orderForm.cardholder_name} onChange={e => setOrderForm({ ...orderForm, cardholder_name: e.target.value })} required /></label><label>Employee ID <span className="optional">optional</span><input value={orderForm.employee_id} onChange={e => setOrderForm({ ...orderForm, employee_id: e.target.value })} /></label><label>Department *<input value={orderForm.department} onChange={e => setOrderForm({ ...orderForm, department: e.target.value })} required /></label><label>Job title *<input value={orderForm.job_title} onChange={e => setOrderForm({ ...orderForm, job_title: e.target.value })} required /></label><label>Corporate email *<input type="email" value={orderForm.cardholder_email} onChange={e => setOrderForm({ ...orderForm, cardholder_email: e.target.value })} required /></label><label>Contact number *<input type="tel" value={orderForm.contact_number} onChange={e => setOrderForm({ ...orderForm, contact_number: e.target.value })} required /></label></div></section>
-            <section className="form-section"><div className="section-title"><span>04</span><div><h3>Site information</h3><p>Identify the cardholder location and destination</p></div></div><div className="form-grid"><label>Site name *<input value={orderForm.site_name} onChange={e => setOrderForm({ ...orderForm, site_name: e.target.value })} required /></label><label>Building *<input value={orderForm.building_address} onChange={e => setOrderForm({ ...orderForm, building_address: e.target.value })} required /></label><label>Floor<input value={orderForm.floor} onChange={e => setOrderForm({ ...orderForm, floor: e.target.value })} /></label><label>Office number<input value={orderForm.office_number} onChange={e => setOrderForm({ ...orderForm, office_number: e.target.value })} /></label><label>Department location<input value={orderForm.department_location} onChange={e => setOrderForm({ ...orderForm, department_location: e.target.value })} /></label></div></section>
-            <section className="form-section"><div className="section-title"><span>05</span><div><h3>Card information</h3><p>Specify product, quantity, format, and access requirements</p></div></div><div className="form-grid"><label>Card type *<select value={orderForm.card_type} onChange={e => setOrderForm({ ...orderForm, card_type: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.card_type.map(x => <option key={x}>{x}</option>)}</select></label><label>Quantity *<input type="number" min="1" max="10000" value={orderForm.quantity} onChange={e => setOrderForm({ ...orderForm, quantity: Number(e.target.value) })} required /></label><label>Access level *<select value={orderForm.access_level} onChange={e => setOrderForm({ ...orderForm, access_level: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.access_level.map(x => <option key={x}>{x}</option>)}</select></label><label>Card format *<select value={orderForm.card_format} onChange={e => setOrderForm({ ...orderForm, card_format: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.card_format.map(x => <option key={x}>{x}</option>)}</select></label><label>New / replacement reason<input value={orderForm.replacement_reason} onChange={e => setOrderForm({ ...orderForm, replacement_reason: e.target.value })} /></label></div></section>
-            <section className="form-section"><div className="section-title"><span>06</span><div><h3>Purchase information</h3><p>Client-provided purchase order and approval details</p></div></div><div className="form-grid"><label>PO Number *<input value={orderForm.po_number} onChange={e => setOrderForm({ ...orderForm, po_number: e.target.value })} placeholder="Enter the purchase order number issued by your organization" required /></label><label>Approved By<input value={orderForm.approved_by} onChange={e => setOrderForm({ ...orderForm, approved_by: e.target.value })} /></label></div></section>
-            <section className="form-section"><div className="section-title"><span>07</span><div><h3>Delivery information</h3><p>Tell us where and how the order should be delivered</p></div></div><div className="form-grid"><label>Delivery address *<textarea value={orderForm.delivery_address} onChange={e => setOrderForm({ ...orderForm, delivery_address: e.target.value })} required /></label><label>Receiving person *<input value={orderForm.receiving_person} onChange={e => setOrderForm({ ...orderForm, receiving_person: e.target.value })} required /></label><label>Phone number *<input type="tel" value={orderForm.delivery_phone} onChange={e => setOrderForm({ ...orderForm, delivery_phone: e.target.value })} required /></label><label>Preferred delivery method *<select value={orderForm.delivery_method} onChange={e => setOrderForm({ ...orderForm, delivery_method: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.delivery_method.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
+            <section className="form-section"><div className="section-title"><span>03</span><div><h3>Cardholder information</h3><p>Information about the person who will receive or use the card</p></div></div><div className="form-grid"><label>Cardholder full name *<input value={orderForm.cardholder_name} onChange={e => setOrderForm({ ...orderForm, cardholder_name: e.target.value })} required /></label><label>Employee ID <span className="optional">optional</span><input value={orderForm.employee_id} onChange={e => setOrderForm({ ...orderForm, employee_id: e.target.value })} /></label><label>Department <span className="optional">optional</span><input value={orderForm.department} onChange={e => setOrderForm({ ...orderForm, department: e.target.value })} /></label><label>Job title <span className="optional">optional</span><input value={orderForm.job_title} onChange={e => setOrderForm({ ...orderForm, job_title: e.target.value })} /></label><label>Corporate email *<input type="email" value={orderForm.cardholder_email} onChange={e => setOrderForm({ ...orderForm, cardholder_email: e.target.value })} required /></label><label>Contact number *<input type="tel" value={orderForm.contact_number} onChange={e => setOrderForm({ ...orderForm, contact_number: e.target.value })} required /></label></div></section>
+            <section className="form-section"><div className="section-title"><span>04</span><div><h3>Site information</h3><p>Identify the cardholder location and destination</p></div></div><div className="form-grid"><label>Site name *<input value={orderForm.site_name} onChange={e => setOrderForm({ ...orderForm, site_name: e.target.value })} required /></label><label>Building *<input value={orderForm.building_address} onChange={e => setOrderForm({ ...orderForm, building_address: e.target.value })} required /></label><label>Floor <span className="optional">optional</span><input value={orderForm.floor} onChange={e => setOrderForm({ ...orderForm, floor: e.target.value })} /></label><label>Office number <span className="optional">optional</span><input value={orderForm.office_number} onChange={e => setOrderForm({ ...orderForm, office_number: e.target.value })} /></label></div></section>
+            <section className="form-section"><div className="section-title"><span>05</span><div><h3>Card information</h3><p>Specify the card type, quantity, access level, and request reason</p></div></div><div className="form-grid"><label>Card type *<input type="text" value={orderForm.card_type} onChange={e => setOrderForm({ ...orderForm, card_type: e.target.value })} placeholder="Enter card type" required /></label><label>Quantity *<input type="number" min="1" max="10000" value={orderForm.quantity} onChange={e => setOrderForm({ ...orderForm, quantity: Number(e.target.value) })} required /></label><label>Access level *<select value={orderForm.access_level} onChange={e => setOrderForm({ ...orderForm, access_level: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.access_level.map(x => <option key={x}>{x}</option>)}</select></label><label>New / replacement reason<input value={orderForm.replacement_reason} onChange={e => setOrderForm({ ...orderForm, replacement_reason: e.target.value })} /></label></div></section>
+            <section className="form-section"><div className="section-title"><span>06</span><div><h3>Purchase information</h3><p>Enter the purchase order number issued by your organization</p></div></div><div className="form-grid"><label>PO Number *<input value={orderForm.po_number} onChange={e => setOrderForm({ ...orderForm, po_number: e.target.value })} placeholder="Enter the purchase order number issued by your organization" required /></label></div></section>
+            <section className="form-section"><div className="section-title"><span>07</span><div><h3>Delivery information</h3><p>Enter the delivery address and receiving contact information</p></div></div><div className="form-grid"><label>Delivery address *<textarea value={orderForm.delivery_address} onChange={e => setOrderForm({ ...orderForm, delivery_address: e.target.value })} required /></label><label>Receiving person *<input value={orderForm.receiving_person} onChange={e => setOrderForm({ ...orderForm, receiving_person: e.target.value })} required /></label><label>Phone number *<input type="tel" value={orderForm.delivery_phone} onChange={e => setOrderForm({ ...orderForm, delivery_phone: e.target.value })} required /></label></div></section>
             <section className="form-section"><div className="section-title"><span>08</span><div><h3>Additional notes</h3><p>Add any special instructions or supporting context</p></div></div><label>Notes / remarks<textarea value={orderForm.notes} onChange={e => setOrderForm({ ...orderForm, notes: e.target.value })} placeholder="Example: Please activate after July 15." /></label></section>
             <section className="form-section"><div className="section-title"><span>09</span><div><h3>Order review</h3><p>Review the order summary before submitting</p></div></div><div className="identity-grid"><div><small>Requester</small><strong>{user.name}</strong></div><div><small>Verified email</small><strong>{user.email}</strong></div><div><small>Cardholder</small><strong>{orderForm.cardholder_name || "Not entered"}</strong></div><div><small>Site</small><strong>{orderForm.site_name || "Not entered"}</strong></div><div><small>PO Number</small><strong>{orderForm.po_number || "Not entered"}</strong></div><div><small>Quantity</small><strong>{orderForm.quantity}</strong></div><div><small>Delivery address</small><strong>{orderForm.delivery_address || "Not entered"}</strong></div><div><small>Notes</small><strong>{orderForm.notes || "No additional notes"}</strong></div></div><label className="check-row"><input type="checkbox" checked={reviewConfirmed} onChange={e => setReviewConfirmed(e.target.checked)} />I have reviewed the order information and confirm that the details are correct.</label></section>
             <div className="form-actions"><p><span>✓</span> The order will be assigned an Order ID and submitted with status Pending Review.</p><div className="form-action-buttons"><button className="secondary" type="button" onClick={() => showPage("services")}>Back to services</button><button className="primary" type="submit" disabled={!reviewConfirmed}>{editingOrderId ? "Save changes" : "Submit access card order"} <span>→</span></button></div></div>
