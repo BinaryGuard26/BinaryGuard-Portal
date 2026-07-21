@@ -1072,36 +1072,34 @@ export default function App() {
                   />
                 </label>
 
-                <div className="delivery-contact-fields">
-                  <label>
-                    Receiving person *
-                    <input
-                      value={orderForm.receiving_person}
-                      onChange={e =>
-                        setOrderForm({
-                          ...orderForm,
-                          receiving_person: e.target.value
-                        })
-                      }
-                      required
-                    />
-                  </label>
+                <label>
+                  Receiving person *
+                  <input
+                    value={orderForm.receiving_person}
+                    onChange={e =>
+                      setOrderForm({
+                        ...orderForm,
+                        receiving_person: e.target.value
+                      })
+                    }
+                    required
+                  />
+                </label>
 
-                  <label>
-                    Phone number *
-                    <input
-                      type="tel"
-                      value={orderForm.delivery_phone}
-                      onChange={e =>
-                        setOrderForm({
-                          ...orderForm,
-                          delivery_phone: e.target.value
-                        })
-                      }
-                      required
-                    />
-                  </label>
-                </div>
+                <label>
+                  Phone number *
+                  <input
+                    type="tel"
+                    value={orderForm.delivery_phone}
+                    onChange={e =>
+                      setOrderForm({
+                        ...orderForm,
+                        delivery_phone: e.target.value
+                      })
+                    }
+                    required
+                  />
+                </label>
               </div>
             </section>
             <section className="form-section"><div className="section-title"><span>08</span><div><h3>Additional notes</h3><p>Add any special instructions or supporting context</p></div></div><label>Notes / remarks<textarea value={orderForm.notes} onChange={e => setOrderForm({ ...orderForm, notes: e.target.value })} placeholder="Example: Please activate after July 15." /></label></section>
