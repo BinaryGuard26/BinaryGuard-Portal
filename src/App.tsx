@@ -37,10 +37,8 @@ const organizationOptions = [
 ];
 
 const dropdownOptions = {
-  request_type: ["New Card", "Replacement Card", "Temporary Card", "Cancel Card", "Access Change"],
+  request_type: ["New Card", "Replacement Card", "Cancel Card"],
   access_level: ["Standard Access", "Manager Access", "Restricted Area Access"],
-  site: ["Winnipeg Central Office", "Brandon Regional Office", "Thompson Service Centre"],
-  building: ["Government Administration Building", "Norquay Building", "Woodsworth Building"]
 };
 
 const portalServices = [
@@ -1008,7 +1006,35 @@ export default function App() {
             <section className="form-section"><div className="section-title"><span>01</span><div><h3>Requester</h3><p>Loaded from your secure account</p></div><b className="readonly-pill">Read only</b></div><div className="identity-grid"><div><small>Requester</small><strong>{user.name}</strong></div><div><small>Email</small><strong>{user.email}</strong></div><div><small>Organization</small><strong>{user.org}</strong></div></div></section>
             <section className="form-section"><div className="section-title"><span>02</span><div><h3>Request information</h3><p>Tell us what kind of card request this is</p></div></div><div className="form-grid"><label>Request type *<select value={orderForm.request_type} onChange={e => setOrderForm({ ...orderForm, request_type: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.request_type.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
             <section className="form-section"><div className="section-title"><span>03</span><div><h3>Cardholder information</h3><p>Who is this access card for?</p></div></div><div className="form-grid"><label>Cardholder name *<input value={orderForm.cardholder_name} onChange={e => setOrderForm({ ...orderForm, cardholder_name: e.target.value })} required /></label><label>Cardholder email *<input type="email" value={orderForm.cardholder_email} onChange={e => setOrderForm({ ...orderForm, cardholder_email: e.target.value })} required /></label><label>Employee ID *<input value={orderForm.employee_id} onChange={e => setOrderForm({ ...orderForm, employee_id: e.target.value })} required /></label><label>Department *<input value={orderForm.department} onChange={e => setOrderForm({ ...orderForm, department: e.target.value })} required /></label></div></section>
-            <section className="form-section"><div className="section-title"><span>04</span><div><h3>Site & access</h3><p>Tenant-specific options are loaded automatically</p></div></div><div className="form-grid"><label>Site *<select value={orderForm.site_name} onChange={e => setOrderForm({ ...orderForm, site_name: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.site.map(x => <option key={x}>{x}</option>)}</select></label><label>Building *<select value={orderForm.building_address} onChange={e => setOrderForm({ ...orderForm, building_address: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.building.map(x => <option key={x}>{x}</option>)}</select></label><label>Floor / Area<input value={orderForm.floor} onChange={e => setOrderForm({ ...orderForm, floor: e.target.value })} /></label><label>Access level *<select value={orderForm.access_level} onChange={e => setOrderForm({ ...orderForm, access_level: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.access_level.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
+            <section className="form-section"><div className="section-title"><span>04</span><div><h3>Site & access</h3><p>Tenant-specific options are loaded automatically</p></div></div><div className="form-grid"><label>
+  Site *
+  <input
+    type="text"
+    value={orderForm.site_name}
+    onChange={e =>
+      setOrderForm({
+        ...orderForm,
+        site_name: e.target.value
+      })
+    }
+    placeholder="Enter site name"
+    required
+  />
+</label><label>
+  Building *
+  <input
+    type="text"
+    value={orderForm.building_address}
+    onChange={e =>
+      setOrderForm({
+        ...orderForm,
+        building_address: e.target.value
+      })
+    }
+    placeholder="Enter building name or address"
+    required
+  />
+</label><label>Floor / Area<input value={orderForm.floor} onChange={e => setOrderForm({ ...orderForm, floor: e.target.value })} /></label><label>Access level *<select value={orderForm.access_level} onChange={e => setOrderForm({ ...orderForm, access_level: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.access_level.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
             <section className="form-section"><div className="section-title"><span>05</span><div><h3>Dates & notes</h3><p>Optional expiry date can be added for temporary cards</p></div></div><div className="form-grid"><label>Effective date *<input type="date" value={orderForm.effective_date} onChange={e => setOrderForm({ ...orderForm, effective_date: e.target.value })} required /></label><label>Expiry date <span className="optional">optional</span><input type="date" value={orderForm.expiry_date} onChange={e => setOrderForm({ ...orderForm, expiry_date: e.target.value })} /></label></div><label>Notes / remarks<textarea value={orderForm.notes} onChange={e => setOrderForm({ ...orderForm, notes: e.target.value })} /></label></section>
             <div className="form-actions"><p><span>✓</span> Submission will be routed to {user.org} processing queue.</p><div className="form-action-buttons"><button className="secondary" type="button" onClick={() => showPage("services")}>Back to services</button><button className="primary" type="submit">{editingOrderId ? "Save changes" : "Submit access card order"} <span>→</span></button></div></div>
           </form>
