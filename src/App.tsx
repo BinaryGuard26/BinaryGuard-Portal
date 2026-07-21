@@ -8,17 +8,30 @@ type Page = "auth" | "register" | "otp" | "services" | "checking" | "denied" | "
 type Order = {
   id: string;
   reference: string;
+  submitted_at: string;
   request_type: string;
   cardholder_name: string;
-  cardholder_email: string;
   employee_id: string;
   department: string;
+  job_title: string;
+  cardholder_email: string;
+  contact_number: string;
   site_name: string;
   building_address: string;
   floor: string;
+  office_number: string;
+  department_location: string;
+  card_type: string;
+  quantity: number;
   access_level: string;
-  effective_date: string;
-  expiry_date: string;
+  card_format: string;
+  replacement_reason: string;
+  po_number: string;
+  approved_by: string;
+  delivery_address: string;
+  receiving_person: string;
+  delivery_phone: string;
+  delivery_method: string;
   notes: string;
   status: string;
 };
@@ -39,6 +52,9 @@ const organizationOptions = [
 const dropdownOptions = {
   request_type: ["New Card", "Replacement Card", "Cancel Card"],
   access_level: ["Standard Access", "Manager Access", "Restricted Area Access"],
+  card_type: ["iCLASS SEOS Clamshell", "iCLASS SEOS Keyfob", "Other"],
+  card_format: ["H10301", "H10304", "H10306", "Corporate 1000", "Other"],
+  delivery_method: ["Internal Mail", "Courier", "Pickup", "Urgent Pickup"]
 };
 
 const portalServices = [
@@ -82,15 +98,27 @@ const pageTitles: Record<Page, [string, string]> = {
 const blankOrder = {
   request_type: "",
   cardholder_name: "",
-  cardholder_email: "",
   employee_id: "",
   department: "",
+  job_title: "",
+  cardholder_email: "",
+  contact_number: "",
   site_name: "",
   building_address: "",
   floor: "",
+  office_number: "",
+  department_location: "",
+  card_type: "",
+  quantity: 1,
   access_level: "",
-  effective_date: "",
-  expiry_date: "",
+  card_format: "",
+  replacement_reason: "",
+  po_number: "",
+  approved_by: "",
+  delivery_address: "",
+  receiving_person: "",
+  delivery_phone: "",
+  delivery_method: "",
   notes: ""
 };
 
@@ -182,6 +210,7 @@ export default function App() {
     reason: ""
   });
   const [orderForm, setOrderForm] = useState(blankOrder);
+  const [reviewConfirmed, setReviewConfirmed] = useState(false);
 
   const title = pageTitles[page];
   const steps = ["auth", "otp", "services", "order"];
@@ -548,18 +577,30 @@ export default function App() {
   function resetOrder() {
     setEditingOrderId(null);
     setOrderForm(blankOrder);
+    setReviewConfirmed(false);
   }
 
   function submitOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (!reviewConfirmed) {
+      toast("Please review the order details and confirm before submitting.");
+      return;
+    }
     if (editingOrderId) {
-      setOrders(current => current.map(order => order.id === editingOrderId ? { ...order, ...orderForm } : order));
+      setOrders(current => current.map(order => order.id === editingOrderId ? { ...order, ...orderForm, quantity: Number(orderForm.quantity) } : order));
       resetOrder();
       toast("Request updated.");
       showPage("services");
       return;
     }
-    const newOrder: Order = { id: crypto.randomUUID(), reference: reference(), ...orderForm, status: "Submitted" };
+    const newOrder: Order = {
+      id: crypto.randomUUID(),
+      reference: reference(),
+      submitted_at: new Date().toISOString(),
+      ...orderForm,
+      quantity: Number(orderForm.quantity),
+      status: "Pending Review"
+    };
     setOrders(current => [newOrder, ...current]);
     resetOrder();
     showPage("success");
@@ -572,17 +613,30 @@ export default function App() {
     setOrderForm({
       request_type: found.request_type,
       cardholder_name: found.cardholder_name,
-      cardholder_email: found.cardholder_email,
       employee_id: found.employee_id,
       department: found.department,
+      job_title: found.job_title,
+      cardholder_email: found.cardholder_email,
+      contact_number: found.contact_number,
       site_name: found.site_name,
       building_address: found.building_address,
       floor: found.floor,
+      office_number: found.office_number,
+      department_location: found.department_location,
+      card_type: found.card_type,
+      quantity: found.quantity,
       access_level: found.access_level,
-      effective_date: found.effective_date,
-      expiry_date: found.expiry_date,
+      card_format: found.card_format,
+      replacement_reason: found.replacement_reason,
+      po_number: found.po_number,
+      approved_by: found.approved_by,
+      delivery_address: found.delivery_address,
+      receiving_person: found.receiving_person,
+      delivery_phone: found.delivery_phone,
+      delivery_method: found.delivery_method,
       notes: found.notes
     });
+    setReviewConfirmed(false);
     showPage("order");
   }
 
@@ -993,54 +1047,30 @@ export default function App() {
 
         <section className={`page ${page === "services" ? "active" : ""}`}>
           <div className="hero"><span className="hero-icon">⌘</span><div><p className="eyebrow">AUTHORIZED SERVICES</p><h2>{getWinnipegGreeting()}, {user.name.split(" ")[0]}</h2><p>Select a service available to <span>{user.org}</span>.</p></div></div>
-          <div className="service-grid"><article className="service-card featured"><div className="service-top"><span className="service-icon">▣</span><span className="approved">Enabled</span></div><h3>Access Card Ordering</h3><p>Request new, replacement, temporary, or updated access cards for your organization.</p><button className="primary" onClick={openService}>Open Access Card Ordering <span>→</span></button></article><article className="service-card muted"><div className="service-top"><span className="service-icon">◉</span><span className="soon">Coming soon</span></div><h3>Camera Ordering</h3><p>Order security camera equipment and supporting services.</p></article><article className="service-card muted"><div className="service-top"><span className="service-icon">◇</span><span className="soon">Coming soon</span></div><h3>Quote Requests</h3><p>Request a tailored quote from the BinaryGuard team.</p></article></div>
-          <section className="client-dashboard"><div className="dashboard-heading"><div><p className="eyebrow">MY DASHBOARD</p><h2>Submitted requests</h2><p>Review, edit, modify, or delete your submitted access card requests.</p></div><button className="secondary" type="button">Refresh</button></div><div className="client-summary"><article><b>{summary.total}</b><span>Total submitted</span></article><article><b>{summary.active}</b><span>Active requests</span></article><article><b>{summary.completed}</b><span>Completed</span></article></div><div className="client-request-list">{orders.length === 0 ? <article className="empty-state"><h3>No submitted requests yet</h3><p>Use Access Card Ordering to create your first request. It will appear here after submission.</p></article> : <div className="table-wrap"><table><thead><tr><th>Reference</th><th>Request type</th><th>Cardholder</th><th>Site</th><th>Status</th><th>Actions</th></tr></thead><tbody>{orders.map(o => <tr key={o.id}><td>{o.reference}</td><td>{o.request_type}</td><td>{o.cardholder_name}</td><td>{o.site_name}</td><td><span className="pill">{o.status}</span></td><td className="row-actions"><button className="secondary small" onClick={() => toast(`${o.reference}: ${o.status}`)}>View</button><button className="secondary small" onClick={() => editOrder(o.id)}>Edit</button><button className="danger small" onClick={() => setOrders(current => current.filter(x => x.id !== o.id))}>Delete</button></td></tr>)}</tbody></table></div>}</div></section>
+          <div className="service-grid"><article className="service-card featured"><div className="service-top"><span className="service-icon">▣</span><span className="approved">Enabled</span></div><h3>Access Card Ordering</h3><p>Request new, replacement, or cancellation of access cards for your organization.</p><button className="primary" onClick={openService}>Open Access Card Ordering <span>→</span></button></article><article className="service-card muted"><div className="service-top"><span className="service-icon">◉</span><span className="soon">Coming soon</span></div><h3>Camera Ordering</h3><p>Order security camera equipment and supporting services.</p></article><article className="service-card muted"><div className="service-top"><span className="service-icon">◇</span><span className="soon">Coming soon</span></div><h3>Quote Requests</h3><p>Request a tailored quote from the BinaryGuard team.</p></article></div>
+          <section className="client-dashboard"><div className="dashboard-heading"><div><p className="eyebrow">MY ORDERS</p><h2>Submitted access card requests</h2><p>Review order status, submission date, quantity, and available actions.</p></div><button className="secondary" type="button">Refresh</button></div><div className="client-summary"><article><b>{summary.total}</b><span>Total submitted</span></article><article><b>{summary.active}</b><span>Active requests</span></article><article><b>{summary.completed}</b><span>Completed</span></article></div><div className="client-request-list">{orders.length === 0 ? <article className="empty-state"><h3>No submitted requests yet</h3><p>Use Access Card Ordering to create your first request.</p></article> : <div className="table-wrap"><table><thead><tr><th>Order</th><th>Status</th><th>Submitted</th><th>Quantity</th><th>Action</th></tr></thead><tbody>{orders.map(order => <tr key={order.id}><td>{order.reference}</td><td><span className="pill">{order.status}</span></td><td>{new Date(order.submitted_at).toLocaleDateString("en-CA")}</td><td>{order.quantity}</td><td className="row-actions"><button className="secondary small" onClick={() => toast(`${order.reference}: ${order.status}`)}>View</button>{order.status === "Pending Review" && <button className="secondary small" onClick={() => editOrder(order.id)}>Edit</button>}{order.status === "Pending Review" && <button className="danger small" onClick={() => setOrders(current => current.filter(item => item.id !== order.id))}>Cancel</button>}</td></tr>)}</tbody></table></div>}</div></section>
         </section>
 
         <section className={`page ${page === "checking" ? "active" : ""}`}><div className="gate-card"><div className="spinner"></div><p className="eyebrow">SECURE CHECK</p><h2>Verifying service authorization</h2><p>We’re confirming your account activation, organization, service access, and role before loading the order form.</p><ul><li className="checked">Authenticated user</li><li className="checked">Activated user account</li><li className="checked">Active tenant</li><li className="checked">Access Card Ordering enabled</li><li className="checked">Authorized user role</li></ul></div></section>
         <section className={`page ${page === "denied" ? "active" : ""}`}><div className="gate-card denied"><span className="denied-icon">!</span><p className="eyebrow">ACCESS DENIED</p><h2>You are not authorized</h2><p>You are not authorized to use the Access Card Ordering service.</p><button className="secondary" onClick={() => showPage("services")}>Return to services</button></div></section>
 
         <section className={`page ${page === "order" ? "active" : ""}`}>
-          <div className="order-heading"><div><p className="eyebrow">ACCESS CARD ORDERING</p><h2>{editingOrderId ? "Edit access card request" : "New access card request"}</h2><p>{editingOrderId ? "Modify the request details below and save your changes." : "Complete the details below. Required fields are marked with an asterisk."}</p></div><span className="draft">{editingOrderId ? "Edit mode" : "Secure form"}</span></div>
+          <div className="order-heading"><div><p className="eyebrow">ACCESS CARD ORDERING</p><h2>{editingOrderId ? "Edit access card request" : "New access card request"}</h2><p>Complete the required details, review the order, and confirm before submitting.</p></div><span className="draft">{editingOrderId ? "Edit mode" : "Secure form"}</span></div>
           <form onSubmit={submitOrder}>
-            <section className="form-section"><div className="section-title"><span>01</span><div><h3>Requester</h3><p>Loaded from your secure account</p></div><b className="readonly-pill">Read only</b></div><div className="identity-grid"><div><small>Requester</small><strong>{user.name}</strong></div><div><small>Email</small><strong>{user.email}</strong></div><div><small>Organization</small><strong>{user.org}</strong></div></div></section>
-            <section className="form-section"><div className="section-title"><span>02</span><div><h3>Request information</h3><p>Tell us what kind of card request this is</p></div></div><div className="form-grid"><label>Request type *<select value={orderForm.request_type} onChange={e => setOrderForm({ ...orderForm, request_type: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.request_type.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
-            <section className="form-section"><div className="section-title"><span>03</span><div><h3>Cardholder information</h3><p>Who is this access card for?</p></div></div><div className="form-grid"><label>Cardholder name *<input value={orderForm.cardholder_name} onChange={e => setOrderForm({ ...orderForm, cardholder_name: e.target.value })} required /></label><label>Cardholder email *<input type="email" value={orderForm.cardholder_email} onChange={e => setOrderForm({ ...orderForm, cardholder_email: e.target.value })} required /></label><label>Employee ID *<input value={orderForm.employee_id} onChange={e => setOrderForm({ ...orderForm, employee_id: e.target.value })} required /></label><label>Department *<input value={orderForm.department} onChange={e => setOrderForm({ ...orderForm, department: e.target.value })} required /></label></div></section>
-            <section className="form-section"><div className="section-title"><span>04</span><div><h3>Site & access</h3><p>Tenant-specific options are loaded automatically</p></div></div><div className="form-grid"><label>
-  Site *
-  <input
-    type="text"
-    value={orderForm.site_name}
-    onChange={e =>
-      setOrderForm({
-        ...orderForm,
-        site_name: e.target.value
-      })
-    }
-    placeholder="Enter site name"
-    required
-  />
-</label><label>
-  Building *
-  <input
-    type="text"
-    value={orderForm.building_address}
-    onChange={e =>
-      setOrderForm({
-        ...orderForm,
-        building_address: e.target.value
-      })
-    }
-    placeholder="Enter building name or address"
-    required
-  />
-</label><label>Floor / Area<input value={orderForm.floor} onChange={e => setOrderForm({ ...orderForm, floor: e.target.value })} /></label><label>Access level *<select value={orderForm.access_level} onChange={e => setOrderForm({ ...orderForm, access_level: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.access_level.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
-            <section className="form-section"><div className="section-title"><span>05</span><div><h3>Dates & notes</h3><p>Optional expiry date can be added for temporary cards</p></div></div><div className="form-grid"><label>Effective date *<input type="date" value={orderForm.effective_date} onChange={e => setOrderForm({ ...orderForm, effective_date: e.target.value })} required /></label><label>Expiry date <span className="optional">optional</span><input type="date" value={orderForm.expiry_date} onChange={e => setOrderForm({ ...orderForm, expiry_date: e.target.value })} /></label></div><label>Notes / remarks<textarea value={orderForm.notes} onChange={e => setOrderForm({ ...orderForm, notes: e.target.value })} /></label></section>
-            <div className="form-actions"><p><span>✓</span> Submission will be routed to {user.org} processing queue.</p><div className="form-action-buttons"><button className="secondary" type="button" onClick={() => showPage("services")}>Back to services</button><button className="primary" type="submit">{editingOrderId ? "Save changes" : "Submit access card order"} <span>→</span></button></div></div>
+            <section className="form-section"><div className="section-title"><span>01</span><div><h3>Requester information</h3><p>Automatically populated after OTP authentication</p></div><b className="readonly-pill">Read only</b></div><div className="identity-grid"><div><small>Verified corporate email</small><strong>{user.email}</strong></div><div><small>Organization</small><strong>{user.org}</strong></div><div><small>Request submitted by</small><strong>{user.name}</strong></div><div><small>Submission date</small><strong>{new Date().toLocaleDateString("en-CA")}</strong></div><div><small>Order ID</small><strong>{editingOrderId ? orders.find(order => order.id === editingOrderId)?.reference : "Generated after submission"}</strong></div></div></section>
+            <section className="form-section"><div className="section-title"><span>02</span><div><h3>Request type</h3><p>Select the required access card action</p></div></div><div className="form-grid"><label>Request type *<select value={orderForm.request_type} onChange={e => setOrderForm({ ...orderForm, request_type: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.request_type.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
+            <section className="form-section"><div className="section-title"><span>03</span><div><h3>Cardholder information</h3><p>Information about the person who will receive or use the card</p></div></div><div className="form-grid"><label>Cardholder full name *<input value={orderForm.cardholder_name} onChange={e => setOrderForm({ ...orderForm, cardholder_name: e.target.value })} required /></label><label>Employee ID <span className="optional">optional</span><input value={orderForm.employee_id} onChange={e => setOrderForm({ ...orderForm, employee_id: e.target.value })} /></label><label>Department *<input value={orderForm.department} onChange={e => setOrderForm({ ...orderForm, department: e.target.value })} required /></label><label>Job title *<input value={orderForm.job_title} onChange={e => setOrderForm({ ...orderForm, job_title: e.target.value })} required /></label><label>Corporate email *<input type="email" value={orderForm.cardholder_email} onChange={e => setOrderForm({ ...orderForm, cardholder_email: e.target.value })} required /></label><label>Contact number *<input type="tel" value={orderForm.contact_number} onChange={e => setOrderForm({ ...orderForm, contact_number: e.target.value })} required /></label></div></section>
+            <section className="form-section"><div className="section-title"><span>04</span><div><h3>Site information</h3><p>Identify the cardholder location and destination</p></div></div><div className="form-grid"><label>Site name *<input value={orderForm.site_name} onChange={e => setOrderForm({ ...orderForm, site_name: e.target.value })} required /></label><label>Building *<input value={orderForm.building_address} onChange={e => setOrderForm({ ...orderForm, building_address: e.target.value })} required /></label><label>Floor<input value={orderForm.floor} onChange={e => setOrderForm({ ...orderForm, floor: e.target.value })} /></label><label>Office number<input value={orderForm.office_number} onChange={e => setOrderForm({ ...orderForm, office_number: e.target.value })} /></label><label>Department location<input value={orderForm.department_location} onChange={e => setOrderForm({ ...orderForm, department_location: e.target.value })} /></label></div></section>
+            <section className="form-section"><div className="section-title"><span>05</span><div><h3>Card information</h3><p>Specify product, quantity, format, and access requirements</p></div></div><div className="form-grid"><label>Card type *<select value={orderForm.card_type} onChange={e => setOrderForm({ ...orderForm, card_type: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.card_type.map(x => <option key={x}>{x}</option>)}</select></label><label>Quantity *<input type="number" min="1" max="10000" value={orderForm.quantity} onChange={e => setOrderForm({ ...orderForm, quantity: Number(e.target.value) })} required /></label><label>Access level *<select value={orderForm.access_level} onChange={e => setOrderForm({ ...orderForm, access_level: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.access_level.map(x => <option key={x}>{x}</option>)}</select></label><label>Card format *<select value={orderForm.card_format} onChange={e => setOrderForm({ ...orderForm, card_format: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.card_format.map(x => <option key={x}>{x}</option>)}</select></label><label>New / replacement reason<input value={orderForm.replacement_reason} onChange={e => setOrderForm({ ...orderForm, replacement_reason: e.target.value })} /></label></div></section>
+            <section className="form-section"><div className="section-title"><span>06</span><div><h3>Purchase information</h3><p>Client-provided purchase order and approval details</p></div></div><div className="form-grid"><label>PO Number *<input value={orderForm.po_number} onChange={e => setOrderForm({ ...orderForm, po_number: e.target.value })} placeholder="Enter the purchase order number issued by your organization" required /></label><label>Approved By<input value={orderForm.approved_by} onChange={e => setOrderForm({ ...orderForm, approved_by: e.target.value })} /></label></div></section>
+            <section className="form-section"><div className="section-title"><span>07</span><div><h3>Delivery information</h3><p>Tell us where and how the order should be delivered</p></div></div><div className="form-grid"><label>Delivery address *<textarea value={orderForm.delivery_address} onChange={e => setOrderForm({ ...orderForm, delivery_address: e.target.value })} required /></label><label>Receiving person *<input value={orderForm.receiving_person} onChange={e => setOrderForm({ ...orderForm, receiving_person: e.target.value })} required /></label><label>Phone number *<input type="tel" value={orderForm.delivery_phone} onChange={e => setOrderForm({ ...orderForm, delivery_phone: e.target.value })} required /></label><label>Preferred delivery method *<select value={orderForm.delivery_method} onChange={e => setOrderForm({ ...orderForm, delivery_method: e.target.value })} required><option value="">Select an option</option>{dropdownOptions.delivery_method.map(x => <option key={x}>{x}</option>)}</select></label></div></section>
+            <section className="form-section"><div className="section-title"><span>08</span><div><h3>Additional notes</h3><p>Add any special instructions or supporting context</p></div></div><label>Notes / remarks<textarea value={orderForm.notes} onChange={e => setOrderForm({ ...orderForm, notes: e.target.value })} placeholder="Example: Please activate after July 15." /></label></section>
+            <section className="form-section"><div className="section-title"><span>09</span><div><h3>Order review</h3><p>Review the order summary before submitting</p></div></div><div className="identity-grid"><div><small>Requester</small><strong>{user.name}</strong></div><div><small>Verified email</small><strong>{user.email}</strong></div><div><small>Cardholder</small><strong>{orderForm.cardholder_name || "Not entered"}</strong></div><div><small>Site</small><strong>{orderForm.site_name || "Not entered"}</strong></div><div><small>PO Number</small><strong>{orderForm.po_number || "Not entered"}</strong></div><div><small>Quantity</small><strong>{orderForm.quantity}</strong></div><div><small>Delivery address</small><strong>{orderForm.delivery_address || "Not entered"}</strong></div><div><small>Notes</small><strong>{orderForm.notes || "No additional notes"}</strong></div></div><label className="check-row"><input type="checkbox" checked={reviewConfirmed} onChange={e => setReviewConfirmed(e.target.checked)} />I have reviewed the order information and confirm that the details are correct.</label></section>
+            <div className="form-actions"><p><span>✓</span> The order will be assigned an Order ID and submitted with status Pending Review.</p><div className="form-action-buttons"><button className="secondary" type="button" onClick={() => showPage("services")}>Back to services</button><button className="primary" type="submit" disabled={!reviewConfirmed}>{editingOrderId ? "Save changes" : "Submit access card order"} <span>→</span></button></div></div>
           </form>
         </section>
 
-        <section className={`page ${page === "success" ? "active" : ""}`}><div className="success-card"><span className="success-icon">✓</span><p className="eyebrow">ORDER SUBMITTED</p><h2>Your access card request has been received</h2><p>A confirmation will be sent to <b>{user.email}</b>. BinaryGuard will process the request according to the approved workflow.</p><div className="reference"><small>STATUS</small><strong>Submitted</strong><span>Pending review</span></div><div className="success-actions"><button className="primary" onClick={() => showPage("services")}>View my requests</button><button className="secondary" onClick={signOut}>Sign out</button></div></div></section>
+        <section className={`page ${page === "success" ? "active" : ""}`}><div className="success-card"><span className="success-icon">✓</span><p className="eyebrow">NEW ACCESS CARD REQUEST SUBMITTED</p><h2>Your access card request has been received</h2><p>A confirmation summary will be sent to <b>{user.email}</b>.</p>{orders[0] && <div className="reference"><small>ORDER ID</small><strong>{orders[0].reference}</strong><span>{orders[0].status}</span></div>}{orders[0] && <div className="identity-grid"><div><small>Submitted By</small><strong>{user.email}</strong></div><div><small>Organization</small><strong>{user.org}</strong></div><div><small>Cardholder</small><strong>{orders[0].cardholder_name}</strong></div><div><small>Department</small><strong>{orders[0].department}</strong></div><div><small>Request Type</small><strong>{orders[0].request_type}</strong></div><div><small>Card Type</small><strong>{orders[0].card_type}</strong></div><div><small>Quantity</small><strong>{orders[0].quantity}</strong></div><div><small>PO Number</small><strong>{orders[0].po_number}</strong></div><div><small>Delivery</small><strong>{orders[0].delivery_address}</strong></div><div><small>Attention</small><strong>{orders[0].receiving_person}</strong></div></div>}<div className="success-actions"><button className="primary" onClick={() => showPage("services")}>View my orders</button><button className="secondary" onClick={signOut}>Sign out</button></div></div></section>
         <div className={`toast ${toastMessage ? "show" : ""}`}>{toastMessage}</div>
       </main>
     </div>
